@@ -14,6 +14,7 @@ statement_formats.install()
 statement_tools._ocr_lines = ocr_lines
 import statements
 import views
+import data_workspace
 
 st.set_page_config(page_title="FYNTRA · Your money, with clarity", page_icon="assets/mark.svg", layout="wide")
 style()
@@ -30,7 +31,7 @@ routes = {"Overview":views.overview_page, "Transactions":views.transactions_page
           "Budgets":views.budgets_page, "Accounts":views.accounts_page,
           "Bills & subscriptions":views.commitments_page, "Goals & debt":views.goals_page,
           "Cash flow & insights":views.analytics_page, "Calendar":views.calendar_page,
-          "Data & settings":views.data_page, "Learning guide":views.learning_page}
+          "Data & settings":data_workspace.data_page, "Learning guide":views.learning_page}
 if st.session_state.mode != "demo":
     routes["Bank statements"] = statements.statement_page
 with st.sidebar:
