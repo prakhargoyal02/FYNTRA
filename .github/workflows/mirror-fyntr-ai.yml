@@ -1,0 +1,41 @@
+name: Mirror FYNTR_Ai baseline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mirror-fyntr-ai.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FYNTRA
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone FYNTR_Ai source
+        run: git clone --depth 1 https://github.com/prakhargoyal02/FYNTR_Ai.git /tmp/fyntr-ai
+
+      - name: Mirror exact source tree
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github/workflows/mirror-fyntr-ai.yml' \
+            /tmp/fyntr-ai/ ./
+
+      - name: Commit mirrored baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already mirrored"
+            exit 0
+          fi
+          git commit -m "Mirror FYNTR_Ai baseline"
+          git push origin main
