@@ -1,11 +1,27 @@
 """Optional private cloud storage. Auth clients are per-session, never cached globally."""
 import json
 import base64
+import math
 from datetime import datetime,timezone
 from supabase import create_client, ClientOptions
 
 class SyncConflict(RuntimeError):
     pass
+
+def _json_safe(value):
+    """Convert pandas/NumPy-style non-finite values into valid JSON values."""
+    if isinstance(value, dict):
+        return {key:_json_safe(item) for key,item in value.items()}
+    if isinstance(value, (list,tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if hasattr(value,"item"):
+        try:
+            return _json_safe(value.item())
+        except (ValueError,TypeError):
+            pass
+    return value
 
 class Cloud:
     def __init__(self,url,key):
@@ -49,8 +65,9 @@ class Cloud:
         return self.revision
 
     def push(self,store):
-        state = store.dump_state()
-        if len(json.dumps(state).encode())>5*1024*1024:
+        state = _json_safe(store.dump_state())
+        encoded = json.dumps(state,allow_nan=False).encode()
+        if len(encoded)>5*1024*1024:
             raise ValueError("Cloud backup exceeds 5 MB. Export your data and reduce history.")
         payload = dict(user_id=self.user_id,state=state,revision=self.revision+1,updated_at=datetime.now(timezone.utc).isoformat())
         if self.revision==0:
@@ -66,4 +83,3 @@ class Cloud:
 
     def sign_out(self):
         self.client.auth.sign_out({"scope":"local"})
-
