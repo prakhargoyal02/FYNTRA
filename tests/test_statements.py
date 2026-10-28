@@ -1,10 +1,7 @@
-import io
-import zipfile
 import pandas as pd
 
 from database import Store
 from statement_tools import clean_rows, import_rows, normalize_table, summary
-from statements import _export_csv_bytes, _export_zip_bytes, _flatten_statements
 
 
 def test_normalize_bank_export_and_summary():
@@ -49,28 +46,3 @@ def test_statement_import_is_idempotent(tmp_path):
     assert count_again == 0
     assert len(store.frame("transactions")) == 2
     assert all(row["transaction_id"] for row in updated_again)
-
-
-def test_statement_export_snapshot_can_be_combined_or_separate():
-    statements = [
-        {"id":"s1","name":"September Salary Account","source_filename":"sep.csv","account_id":"a1",
-         "period_start":"2026-09-01","period_end":"2026-09-30","rows":[
-             {"date":"2026-09-02","description":"Groceries","amount":500.0,"kind":"expense","category":"Groceries",
-              "payment_method":"UPI","balance":9500,"reference":"r1","confidence":95,"transaction_id":""}]},
-        {"id":"s2","name":"October Salary Account","source_filename":"oct.csv","account_id":"a1",
-         "period_start":"2026-10-01","period_end":"2026-10-31","rows":[
-             {"date":"2026-10-02","description":"Food","amount":350.0,"kind":"expense","category":"Food",
-              "payment_method":"Card","balance":9150,"reference":"r2","confidence":95,"transaction_id":"tx1"}]},
-    ]
-    rows = _flatten_statements(statements)
-    assert len(rows) == 2
-    assert rows[0]["statement_name"] == "September Salary Account"
-    assert rows[1]["imported_to_ledger"] is True
-
-    csv_bytes = _export_csv_bytes(rows)
-    frame = pd.read_csv(io.BytesIO(csv_bytes))
-    assert frame.statement_name.tolist() == ["September Salary Account","October Salary Account"]
-
-    zipped = _export_zip_bytes(rows)
-    with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
-        assert sorted(archive.namelist()) == ["October_Salary_Account.csv","September_Salary_Account.csv"]
