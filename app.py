@@ -12,7 +12,7 @@ import statement_formats
 from statement_ocr import ocr_lines
 statement_formats.install()
 statement_tools._ocr_lines = ocr_lines
-import statements
+import statement_workspace
 import views
 import data_settings
 import about
@@ -34,7 +34,7 @@ routes = {"Overview":views.overview_page, "Transactions":views.transactions_page
           "Cash flow & insights":views.analytics_page, "Calendar":views.calendar_page,
           "Data & settings":data_settings.data_page}
 if st.session_state.mode != "demo":
-    routes["Bank statements"] = statements.statement_page
+    routes["Bank statements"] = statement_workspace.statement_page
 # Keep project information at the bottom of the workspace navigation.
 routes["About FYNTRA"] = about.about_page
 with st.sidebar:
