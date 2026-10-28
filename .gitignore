@@ -1,7 +1,44 @@
-.venv/
+# Python cache
 __pycache__/
-*.pyc
-fyntra.db
-.streamlit/secrets.toml
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build and package output
+build/
+dist/
+*.egg-info/
+
+# Local editor and OS files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+tempCodeRunnerFile.py
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# FYNTRA local/private data
+*.db
+*.db-*
+*.sqlite*
+csv_backups/
+private_uploads/
+uploads/
+real_finance/
+*.log
