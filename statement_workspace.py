@@ -3,6 +3,7 @@ import streamlit as st
 
 from ui import hero
 import statement_flow
+import statement_manage
 import statement_upload
 
 
@@ -33,6 +34,6 @@ def statement_page():
     elif view == "Compare":
         statement_flow.compare_view()
     elif view == "Manage":
-        statement_flow.manage_view()
+        statement_manage.manage_view()
     else:
         statement_upload.upload_view()
