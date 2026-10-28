@@ -2,50 +2,53 @@
 FYNTRA analytics
 ================
 
-This file turns raw database records into useful finance information.
+This file contains finance calculations.
 
-Pandas:
-- filtering
-- grouping
-- monthly summaries
-- category summaries
-
-NumPy:
-- averages
-- percentages
-- safe calculations
-- projections
+Pandas handles tables, filtering, grouping and joins.
+NumPy handles averages, percentages and small numerical calculations.
 """
 
 import numpy as np
 import pandas as pd
 
 
+TRANSACTION_COLUMNS = [
+    "id",
+    "transaction_date",
+    "kind",
+    "amount",
+    "account_id",
+    "to_account_id",
+    "account_name",
+    "to_account_name",
+    "category",
+    "subcategory",
+    "merchant",
+    "payment_method",
+    "tags",
+    "notes",
+]
+
+
 def transactions_frame(transaction_rows):
-    """Convert transaction dictionaries into a clean Pandas DataFrame."""
+    """Convert database records into a predictable Pandas DataFrame."""
     if not transaction_rows:
-        return pd.DataFrame(
-            columns=[
-                "id",
-                "transaction_date",
-                "kind",
-                "amount",
-                "account_id",
-                "account_name",
-                "category",
-                "merchant",
-                "notes",
-            ]
-        )
+        return pd.DataFrame(columns=TRANSACTION_COLUMNS)
 
     df = pd.DataFrame(transaction_rows)
+
+    for column in TRANSACTION_COLUMNS:
+        if column not in df:
+            df[column] = None
+
     df["transaction_date"] = pd.to_datetime(df["transaction_date"])
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0.0)
+
     return df
 
 
 def month_data(df, month):
-    """Return transactions only for YYYY-MM."""
+    """Return transactions only from YYYY-MM."""
     if df.empty:
         return df.copy()
 
@@ -54,44 +57,47 @@ def month_data(df, month):
 
 
 def overview(df, month):
-    """Main dashboard numbers for one month."""
+    """Main dashboard and monthly-review numbers."""
     data = month_data(df, month)
-
-    if data.empty:
-        return {
-            "income": 0.0,
-            "expenses": 0.0,
-            "net": 0.0,
-            "savings_rate": None,
-            "average_expense": 0.0,
-            "transaction_count": 0,
-        }
 
     income = float(data.loc[data["kind"] == "income", "amount"].sum())
     expenses = float(data.loc[data["kind"] == "expense", "amount"].sum())
     net = income - expenses
 
+    expense_rows = data[data["kind"] == "expense"]
+    expense_values = expense_rows["amount"].to_numpy(dtype=float)
+
     savings_rate = None
     if income > 0:
         savings_rate = float(np.round((net / income) * 100, 1))
 
-    expense_values = data.loc[data["kind"] == "expense", "amount"].to_numpy(dtype=float)
-    average_expense = float(np.mean(expense_values)) if expense_values.size else 0.0
+    largest_expense = None
+    largest_amount = 0.0
+    if not expense_rows.empty:
+        largest = expense_rows.loc[expense_rows["amount"].idxmax()]
+        largest_expense = largest.get("merchant") or largest.get("category")
+        largest_amount = float(largest["amount"])
+
+    categories = category_spending(df, month)
+    top_category = None if categories.empty else str(categories.iloc[0]["category"])
 
     return {
         "income": income,
         "expenses": expenses,
         "net": net,
         "savings_rate": savings_rate,
-        "average_expense": average_expense,
+        "average_expense": float(np.mean(expense_values)) if expense_values.size else 0.0,
         "transaction_count": int(len(data)),
+        "largest_expense": largest_expense,
+        "largest_amount": largest_amount,
+        "top_category": top_category,
     }
 
 
 def category_spending(df, month):
-    """How much was spent in each category this month."""
-    data = month_data(df, month)
-    expenses = data[data["kind"] == "expense"]
+    """Total expense spending per category."""
+    expenses = month_data(df, month)
+    expenses = expenses[expenses["kind"] == "expense"]
 
     if expenses.empty:
         return pd.DataFrame(columns=["category", "amount"])
@@ -103,12 +109,33 @@ def category_spending(df, month):
     )
 
 
+def daily_spending(df, month):
+    """Expense total per calendar day."""
+    expenses = month_data(df, month)
+    expenses = expenses[expenses["kind"] == "expense"].copy()
+
+    if expenses.empty:
+        return pd.DataFrame(columns=["date", "amount"])
+
+    expenses["date"] = expenses["transaction_date"].dt.date
+
+    return (
+        expenses.groupby("date", as_index=False)["amount"]
+        .sum()
+        .sort_values("date")
+    )
+
+
 def monthly_cash_flow(df):
     """Income, expenses and net cash flow by month."""
     if df.empty:
         return pd.DataFrame(columns=["month", "income", "expenses", "net"])
 
-    data = df.copy()
+    data = df[df["kind"].isin(["income", "expense"])].copy()
+
+    if data.empty:
+        return pd.DataFrame(columns=["month", "income", "expenses", "net"])
+
     data["month"] = data["transaction_date"].dt.to_period("M").astype(str)
 
     summary = (
@@ -129,15 +156,28 @@ def monthly_cash_flow(df):
 
     summary["expenses"] = summary["expense"]
     summary["net"] = summary["income"] - summary["expenses"]
+    summary["three_month_avg_expenses"] = (
+        summary["expenses"].rolling(3, min_periods=1).mean().round(2)
+    )
 
-    return summary[["month", "income", "expenses", "net"]]
+    return summary[
+        ["month", "income", "expenses", "net", "three_month_avg_expenses"]
+    ]
 
 
 def budget_status(budget_rows, df, month):
-    """Compare each budget with actual spending."""
+    """Compare category budgets with actual expense spending."""
     if not budget_rows:
         return pd.DataFrame(
-            columns=["category", "monthly_limit", "spent", "remaining", "used_percent"]
+            columns=[
+                "id",
+                "category",
+                "monthly_limit",
+                "spent",
+                "remaining",
+                "used_percent",
+                "status",
+            ]
         )
 
     budgets = pd.DataFrame(budget_rows)
@@ -153,58 +193,106 @@ def budget_status(budget_rows, df, month):
         0,
     )
 
-    return result[["id", "category", "monthly_limit", "spent", "remaining", "used_percent"]]
+    result["status"] = np.select(
+        [
+            result["used_percent"] > 100,
+            result["used_percent"] >= 85,
+            result["used_percent"] >= 60,
+        ],
+        ["Over budget", "Almost full", "Watch"],
+        default="Healthy",
+    )
+
+    return result[
+        [
+            "id",
+            "category",
+            "monthly_limit",
+            "spent",
+            "remaining",
+            "used_percent",
+            "status",
+        ]
+    ]
 
 
 def account_balances(account_rows, df):
-    """Calculate live account balances from opening balance + transactions."""
+    """
+    Calculate live account balances.
+
+    Income adds to the source account.
+    Expense subtracts from the source account.
+    Transfer subtracts from source and adds to destination.
+    """
     if not account_rows:
-        return pd.DataFrame(columns=["id", "name", "account_type", "balance"])
+        return pd.DataFrame(
+            columns=["id", "name", "account_type", "opening_balance", "balance"]
+        )
 
     accounts = pd.DataFrame(account_rows)
-    balances = []
+    result = []
 
     for account in accounts.to_dict("records"):
-        opening = float(account["opening_balance"])
+        balance = float(account["opening_balance"])
 
-        if df.empty:
-            movement = 0.0
-        else:
-            account_tx = df[df["account_id"] == account["id"]]
-            income = account_tx.loc[account_tx["kind"] == "income", "amount"].sum()
-            expenses = account_tx.loc[account_tx["kind"] == "expense", "amount"].sum()
-            movement = float(income - expenses)
+        if not df.empty:
+            source = df[df["account_id"] == account["id"]]
+            destination = df[
+                (df["kind"] == "transfer")
+                & (df["to_account_id"] == account["id"])
+            ]
 
-        balances.append(
+            balance += float(source.loc[source["kind"] == "income", "amount"].sum())
+            balance -= float(source.loc[source["kind"] == "expense", "amount"].sum())
+            balance -= float(source.loc[source["kind"] == "transfer", "amount"].sum())
+            balance += float(destination["amount"].sum())
+
+        result.append(
             {
                 "id": account["id"],
                 "name": account["name"],
                 "account_type": account["account_type"],
-                "balance": opening + movement,
+                "opening_balance": float(account["opening_balance"]),
+                "balance": balance,
             }
         )
 
-    return pd.DataFrame(balances)
+    return pd.DataFrame(result)
+
+
+def account_distribution(account_rows, df):
+    """Account balances for a distribution chart."""
+    balances = account_balances(account_rows, df)
+
+    if balances.empty:
+        return pd.DataFrame(columns=["name", "balance"])
+
+    return balances[["name", "balance"]].sort_values("balance", ascending=False)
 
 
 def total_net_worth(account_rows, df, debt_rows):
-    """Simple net worth = account balances - remaining debt."""
+    """Net worth = account balances minus standalone debt."""
     balances = account_balances(account_rows, df)
     assets = float(balances["balance"].sum()) if not balances.empty else 0.0
 
     debt = 0.0
     if debt_rows:
-        debt = float(pd.DataFrame(debt_rows)["remaining_amount"].astype(float).sum())
+        debt = float(
+            pd.DataFrame(debt_rows)["remaining_amount"]
+            .astype(float)
+            .sum()
+        )
 
     return assets - debt
 
 
 def monthly_subscription_cost(subscription_rows):
-    """Convert subscriptions to a monthly estimate."""
+    """Convert active subscriptions to a monthly equivalent."""
     if not subscription_rows:
         return 0.0
 
-    total = 0.0
+    monthly = []
+
     for item in subscription_rows:
         if not item["active"]:
             continue
@@ -213,10 +301,103 @@ def monthly_subscription_cost(subscription_rows):
         cycle = item["billing_cycle"]
 
         if cycle == "Weekly":
-            total += amount * 52 / 12
+            monthly.append(amount * 52 / 12)
         elif cycle == "Yearly":
-            total += amount / 12
+            monthly.append(amount / 12)
         else:
-            total += amount
+            monthly.append(amount)
 
-    return float(np.round(total, 2))
+    return float(np.round(np.sum(monthly), 2)) if monthly else 0.0
+
+
+def affordability(df, month, purchase_amount, budget_rows=None):
+    """
+    Simple arithmetic affordability check.
+
+    This is not financial advice.
+    It compares the requested purchase with this month's remaining cash flow
+    and optional remaining category budgets.
+    """
+    numbers = overview(df, month)
+    cash_after_purchase = numbers["net"] - float(purchase_amount)
+
+    budget_remaining = None
+    if budget_rows:
+        status = budget_status(budget_rows, df, month)
+        budget_remaining = float(status["remaining"].sum())
+
+    if purchase_amount <= 0:
+        message = "Enter a purchase amount."
+    elif cash_after_purchase >= 0:
+        message = "This purchase fits inside this month's recorded cash flow."
+    else:
+        message = "This purchase is larger than this month's recorded cash flow."
+
+    return {
+        "cash_after_purchase": cash_after_purchase,
+        "budget_remaining": budget_remaining,
+        "message": message,
+    }
+
+
+def timeline(bill_rows, subscription_rows, goal_rows, recurring_rows):
+    """Combine future commitments into one chronological DataFrame."""
+    items = []
+
+    for bill in bill_rows:
+        if not bill["paid"]:
+            items.append(
+                {
+                    "date": bill["due_date"],
+                    "type": "Bill",
+                    "name": bill["name"],
+                    "amount": float(bill["amount"]),
+                    "status": "Due",
+                }
+            )
+
+    for item in subscription_rows:
+        if item["active"] and item["next_payment"]:
+            items.append(
+                {
+                    "date": item["next_payment"],
+                    "type": "Subscription",
+                    "name": item["name"],
+                    "amount": float(item["amount"]),
+                    "status": "Active",
+                }
+            )
+
+    for goal in goal_rows:
+        if goal["target_date"]:
+            items.append(
+                {
+                    "date": goal["target_date"],
+                    "type": "Goal",
+                    "name": goal["name"],
+                    "amount": max(
+                        float(goal["target_amount"]) - float(goal["saved_amount"]),
+                        0,
+                    ),
+                    "status": "Target",
+                }
+            )
+
+    for item in recurring_rows:
+        if item["active"]:
+            items.append(
+                {
+                    "date": item["next_date"],
+                    "type": "Recurring",
+                    "name": item["name"],
+                    "amount": float(item["amount"]),
+                    "status": item["frequency"],
+                }
+            )
+
+    if not items:
+        return pd.DataFrame(columns=["date", "type", "name", "amount", "status"])
+
+    frame = pd.DataFrame(items)
+    frame["date"] = pd.to_datetime(frame["date"])
+    return frame.sort_values(["date", "type", "name"]).reset_index(drop=True)
