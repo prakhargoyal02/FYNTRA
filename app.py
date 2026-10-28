@@ -8,7 +8,9 @@ from demo_data import seed_demo
 from ui import brand, style
 import auth_ui
 import statement_tools
+import statement_formats
 from statement_ocr import ocr_lines
+statement_formats.install()
 statement_tools._ocr_lines = ocr_lines
 import statements
 import views
