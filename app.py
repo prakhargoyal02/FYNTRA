@@ -7,6 +7,9 @@ from database import Store, today
 from demo_data import seed_demo
 from ui import brand, style
 import auth_ui
+import statement_tools
+from statement_ocr import ocr_lines
+statement_tools._ocr_lines = ocr_lines
 import statements
 import views
 
