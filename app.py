@@ -8,7 +8,7 @@ import streamlit as st
 import analytics as analytics_module
 from database import Store, today as actual_today
 from demo_data import seed_demo
-from ui import brand, style
+from ui import brand, sidebar_status, style
 import auth_ui
 import statement_tools
 import statement_formats
@@ -26,6 +26,19 @@ import about
 
 REPORT_START = date(2002, 12, 2)
 LEDGER_LABELS = {"Main ledger": "main", "Merged": "merged", "One statement": "statement"}
+NAV_MARKS = {
+    "Overview": "⌂",
+    "Transactions": "↕",
+    "Budgets": "◫",
+    "Accounts": "◎",
+    "Bills & subscriptions": "◷",
+    "Goals & debt": "◇",
+    "Cash flow & insights": "⌁",
+    "Calendar": "□",
+    "Data & settings": "↧",
+    "Bank statements": "▤",
+    "About FYNTRA": "○",
+}
 
 
 def _valid_report_date(value):
@@ -61,12 +74,17 @@ def _apply_statement_scope():
         st.session_state.statement_scope_id = selected
 
 
-st.set_page_config(page_title="FYNTRA · Your money, with clarity", page_icon="assets/mark.svg", layout="wide")
+st.set_page_config(
+    page_title="FYNTRA · Your money, with clarity",
+    page_icon="assets/mark.svg",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 style()
 st.session_state.setdefault("mode", "demo")
 if "store" not in st.session_state:
     directory = tempfile.TemporaryDirectory(prefix="fyntra-demo-")
-    demo_store = Store(Path(directory.name)/"finance.db")
+    demo_store = Store(Path(directory.name) / "finance.db")
     seed_demo(demo_store)
     # Publish only a complete store: browser component events can interrupt a rerun.
     st.session_state.demo_directory = directory
@@ -93,9 +111,16 @@ routes["About FYNTRA"] = about.about_page
 with st.sidebar:
     brand()
     st.caption("Know where your money goes. Decide where it goes next.")
-    st.caption("FICTIONAL DEMO · YOUR OWN SESSION" if st.session_state.mode == "demo" else "PRIVATE · YOUR ACCOUNT")
-    page = st.radio("Workspace", list(routes), label_visibility="collapsed")
+    sidebar_status(st.session_state.mode)
+    page = st.radio(
+        "Workspace",
+        list(routes),
+        label_visibility="collapsed",
+        format_func=lambda item: f"{NAV_MARKS.get(item, '·')}   {item}",
+    )
 
+    st.divider()
+    st.caption("REPORTING WINDOW")
     current_report = st.session_state.get("report_date")
     if not _valid_report_date(current_report):
         current_report = actual_today()
@@ -116,7 +141,7 @@ with st.sidebar:
     # First run has no callback, so keep derived state initialized explicitly.
     if "report_month" not in st.session_state:
         _apply_report_date()
-    st.caption(f'Viewing records through {st.session_state.report_date:%d %b %Y}')
+    st.caption(f'Viewing through {st.session_state.report_date:%d %b %Y}')
 
     imported = statement_imports(st.session_state.store) if st.session_state.mode != "demo" else {}
     if imported:
@@ -163,8 +188,9 @@ with st.sidebar:
         st.session_state.pop("statement_scope_widget", None)
         st.session_state.pop("ledger_view_widget", None)
 
+    st.divider()
     auth_ui.login_panel()
-    st.caption("FYNTRA v1.0 · By Prakhar Goyal")
+    st.caption("FYNTRA · By Prakhar Goyal")
 
 if st.session_state.get("sync_error"):
     st.error(st.session_state.sync_error)
@@ -180,7 +206,7 @@ if page not in scope_exempt and imported:
         st.session_state.get("statement_scope_id"),
     )
 
-# Existing analytics and views use a shared `today()` helper. During page rendering,
+# Existing analytics and views use a shared today() helper. During page rendering,
 # point those read calculations at the selected report date so historical views are
 # consistent across balances, charts, timelines and monthly summaries.
 report_cutoff = st.session_state.report_date
