@@ -12,6 +12,7 @@ import streamlit as st
 
 import analytics as an
 import views
+from database import money
 from ui import ACCENT, NEGATIVE, POSITIVE, chart, hero, insight_panel, metrics, progress_card, rows, rupees, section_header
 
 
@@ -122,3 +123,148 @@ def overview_page():
             st.write(f'Total liabilities: **{rupees(o["debt"])}**')
             for goal in goals.to_dict("records"):
                 progress_card(goal["name"], goal["saved"], goal["target"], str(goal["target_date"]))
+
+
+def transactions_page():
+    """Keep transaction CRUD intact while presenting the ledger as a readable stream."""
+    hero(
+        "Every move, accounted for.",
+        "Search the ledger, record a movement, or manage predictable recurring entries.",
+        "TRANSACTIONS",
+    )
+    mode = st.segmented_control("View", ["History", "Add transaction", "Recurring"], default="History")
+    if mode == "Add transaction":
+        views.transaction_form()
+        return
+    if mode == "Recurring":
+        views.recurring_page()
+        return
+
+    frame = an.transactions_frame(_store(), posted=False)
+    search = st.text_input("Search transactions", placeholder="Merchant, note, category, tag or amount")
+    if search:
+        text = frame[["merchant", "notes", "category", "tags", "amount"]].astype(str).agg(" ".join, axis=1)
+        frame = frame.loc[text.str.contains(search, case=False, regex=False)]
+
+    with st.expander("Filters", expanded=False):
+        first, second = st.columns(2)
+        start = first.date_input("From", views.d(_month() + "-01"))
+        end = second.date_input("To", pd.Period(_month()).end_time.date())
+        cats = st.multiselect("Categories", sorted(frame.category.unique().tolist()))
+        accts = st.multiselect("Accounts", _store().frame("accounts").name.tolist())
+        kinds = st.multiselect("Types", ["income", "expense", "transfer"])
+        methods = st.multiselect("Payment methods", sorted(frame.payment_method.unique().tolist()))
+        tag = st.text_input("Tag filter")
+        low = st.number_input("Minimum amount", min_value=0.0, value=0.0)
+        high = st.number_input(
+            "Maximum amount",
+            min_value=0.0,
+            value=max(100000.0, float(frame.amount.max()) if not frame.empty else 100000.0),
+        )
+
+    frame = frame.loc[frame.date.between(pd.Timestamp(start), pd.Timestamp(end)) & frame.amount.between(low, high)]
+    for field, values in [("category", cats), ("account_name", accts), ("kind", kinds), ("payment_method", methods)]:
+        if values:
+            frame = frame.loc[frame[field].isin(values)]
+    if tag:
+        frame = frame.loc[frame.tags.fillna("").str.contains(tag, case=False, regex=False)]
+
+    sort_col, summary_col = st.columns([.78, 1.22], gap="large", vertical_alignment="bottom")
+    with sort_col:
+        order = st.selectbox("Sort by", ["Newest", "Oldest", "Largest", "Smallest"])
+    frame = frame.sort_values(
+        "date" if order in {"Newest", "Oldest"} else "amount",
+        ascending=order in {"Oldest", "Smallest"},
+    )
+    with summary_col:
+        visible_income = float(frame.loc[frame.kind.eq("income"), "amount"].sum()) if not frame.empty else 0.0
+        visible_expense = float(frame.loc[frame.kind.eq("expense"), "amount"].sum()) if not frame.empty else 0.0
+        metrics([
+            ("Visible rows", str(len(frame)), "Transactions after the current search and filters."),
+            ("Income", rupees(visible_income), "Income inside the filtered result."),
+            ("Spending", rupees(visible_expense), "Expenses inside the filtered result."),
+        ])
+
+    section_header("Ledger", "Future entries remain planned and do not affect current balances.")
+    if frame.empty:
+        st.info("No transactions match these filters.")
+    else:
+        rows(frame, limit=20)
+        if len(frame) > 20:
+            st.caption(f"Showing the first 20 of {len(frame)} filtered transactions. Open Detailed ledger for every row.")
+
+    with st.expander("Detailed ledger"):
+        shown = frame[["date", "merchant", "kind", "category", "account_name", "amount", "tags"]].copy()
+        shown["date"] = shown.date.dt.strftime("%d %b %Y")
+        shown["amount"] = shown.amount.map(lambda value: rupees(value, True))
+        views.table(shown)
+
+    if not frame.empty:
+        labels = {
+            row.id: f'{row.date:%d %b} · {row.merchant or row.category} · {rupees(row.amount)} · {str(row.id)[:6]}'
+            for row in frame.itertuples()
+        }
+        selected = st.selectbox(
+            "Select a transaction to edit",
+            [None] + list(labels),
+            format_func=lambda value: "Choose a transaction" if value is None else labels[value],
+        )
+        if selected:
+            views.transaction_form(_store().get("transactions", selected))
+
+    with st.expander("Monthly category and daily totals"):
+        views.table(an.category_summary(_store(), _month()))
+        views.table(an.daily_spending(_store(), _month()))
+
+
+def budgets_page():
+    """Show budget pressure as a scan-friendly progression instead of stacked cards."""
+    month = _month()
+    store = _store()
+    budget = an.budget_summary(store, month)
+    overview = an.overview(store, month)
+    hero(
+        "Give your money direction.",
+        "See the room left in every category before the month decides for you.",
+        f"BUDGETS / {month}",
+    )
+    metrics([
+        ("Monthly limit", rupees(overview["budget_limit"]), "Profile limit, or the sum of category budgets."),
+        ("Spent", rupees(overview["expenses"]), "All expenses, including unbudgeted categories."),
+        ("Remaining", rupees(overview["budget_remaining"]), "Limit minus recorded spending."),
+    ])
+
+    section_header("Category pressure", "Progress is calm when healthy and becomes more important as a limit approaches.")
+    if budget.empty:
+        st.info("Create a category budget to see utilization here.")
+    else:
+        for item in budget.to_dict("records"):
+            progress_card(
+                item["category"],
+                item["spent"],
+                item["limit"],
+                f'{rupees(item["remaining"])} remaining · {item["used_pct"]:.0f}% used · {item["status"]}',
+            )
+    st.caption("Healthy ≤60% · Watch >60–85% · Near limit >85–100% · Over budget >100%.")
+
+    edit_col, fit_col = st.columns([1.12, .88], gap="large")
+    with edit_col:
+        with st.expander("Create or edit a budget", expanded=budget.empty):
+            row = views.picker("budgets", name="category")
+            with st.form("budget"):
+                budget_month = st.text_input("Budget month (YYYY-MM)", row.get("month", month))
+                category = st.text_input("Budget category", row.get("category", "Food"))
+                limit = st.number_input(
+                    "Category limit (₹)",
+                    min_value=0.0,
+                    value=float(row.get("limit_paise", 500000) / 100),
+                )
+                submitted = st.form_submit_button("Save budget", type="primary")
+            if submitted:
+                views.save("budgets", row, dict(month=budget_month, category=category, limit_paise=money(limit)))
+            views.deletion("budgets", row)
+    with fit_col:
+        section_header("Can it fit?", "A quick affordability check against the remaining monthly budget.")
+        spend = st.number_input("Planned purchase (₹)", min_value=0.0, value=1000.0, step=100.0)
+        st.metric("Budget left after purchase", rupees(overview["budget_remaining"] - spend))
+        st.caption("This is arithmetic against your budget, not lending or investment advice.")
