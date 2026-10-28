@@ -7,6 +7,83 @@ from database import TABLES, money
 from ui import hero
 
 
+def _account_dependencies(store, account_id):
+    counts = {}
+
+    transactions = store.frame("transactions")
+    if transactions.empty:
+        counts["Transactions / transfers"] = 0
+    else:
+        linked = transactions["account_id"].astype(str).eq(str(account_id))
+        if "to_account_id" in transactions:
+            linked = linked | transactions["to_account_id"].fillna("").astype(str).eq(str(account_id))
+        counts["Transactions / transfers"] = int(linked.sum())
+
+    recurring = store.frame("recurring_transactions")
+    if recurring.empty:
+        counts["Recurring schedules"] = 0
+    else:
+        linked = recurring["account_id"].astype(str).eq(str(account_id))
+        if "to_account_id" in recurring:
+            linked = linked | recurring["to_account_id"].fillna("").astype(str).eq(str(account_id))
+        counts["Recurring schedules"] = int(linked.sum())
+
+    for table, label in [
+        ("bills", "Bills"),
+        ("subscriptions", "Subscriptions"),
+        ("debt_payments", "Debt payments"),
+    ]:
+        frame = store.frame(table)
+        counts[label] = 0 if frame.empty else int(frame["account_id"].astype(str).eq(str(account_id)).sum())
+
+    return counts
+
+
+def _account_cleanup():
+    store = views.current()
+    accounts = store.frame("accounts")
+    st.subheader("Delete an account")
+    st.caption(
+        "Account deletion is deliberately safe. FYNTRA will not remove an account while transactions, transfers, bills, "
+        "subscriptions, recurring schedules or debt payments still depend on it."
+    )
+    if accounts.empty:
+        st.info("There are no accounts to delete.")
+        return
+
+    labels = accounts.set_index("id").name.to_dict()
+    account_id = st.selectbox(
+        "Account to delete",
+        list(labels),
+        format_func=labels.get,
+        key="settings-delete-account",
+    )
+    dependencies = _account_dependencies(store, account_id)
+    st.dataframe(
+        [{"Linked data": label, "Count": count} for label, count in dependencies.items()],
+        hide_index=True,
+        width="stretch",
+    )
+    blocked = sum(dependencies.values()) > 0
+    if blocked:
+        st.warning(
+            "This account still has linked data. Remove statement imports in Bank statements → Manage, or delete/move the linked records first."
+        )
+        return
+
+    st.info("No linked ledger records remain. Deleting this account will not delete any saved bank statement analysis.")
+    typed = st.text_input(
+        f'Type “{labels[account_id]}” to confirm',
+        key="settings-delete-account-name",
+    )
+    if st.button(
+        "Delete this account",
+        disabled=typed.strip() != labels[account_id],
+        key="settings-delete-account-button",
+    ):
+        views.commit_action(lambda: store.delete("accounts", account_id), "Account deleted")
+
+
 def data_page():
     hero(
         "Your data. Your control.",
@@ -71,6 +148,9 @@ def data_page():
             "transaction_template.csv","text/csv",
         )
         st.caption("Account names in this template must already exist. A full FYNTRA bundle can include accounts and related records together.")
+
+    st.divider()
+    _account_cleanup()
 
     cloud=st.session_state.get("cloud")
     if cloud:
