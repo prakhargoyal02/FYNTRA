@@ -10,6 +10,7 @@ import auth_ui
 import statement_tools
 import statement_formats
 from statement_ocr import ocr_lines
+from ledger_scope import scoped_store, statement_imports
 statement_formats.install()
 statement_tools._ocr_lines = ocr_lines
 import statement_workspace
@@ -44,11 +45,54 @@ with st.sidebar:
     page = st.radio("Workspace", list(routes), label_visibility="collapsed")
     months = pd.period_range(end=today(), periods=24, freq="M").astype(str)[::-1].tolist()
     st.selectbox("Report month", months, key="report_month")
+
+    imported = statement_imports(st.session_state.store) if st.session_state.mode != "demo" else {}
+    if imported:
+        st.caption("DATA VIEW")
+        scope_label = st.segmented_control(
+            "Ledger view",
+            ["Main ledger", "Merged", "One statement"],
+            default="Main ledger",
+            key="ledger_view_label",
+            label_visibility="collapsed",
+        )
+        mode_map = {"Main ledger":"main", "Merged":"merged", "One statement":"statement"}
+        st.session_state.ledger_view = mode_map.get(scope_label, "main")
+        if st.session_state.ledger_view == "statement":
+            statement_ids = list(imported)
+            current_id = st.session_state.get("statement_scope_id")
+            if current_id not in imported:
+                current_id = statement_ids[0]
+            st.session_state.statement_scope_id = st.selectbox(
+                "Imported statement",
+                statement_ids,
+                index=statement_ids.index(current_id),
+                format_func=lambda value: imported[value],
+            )
+        else:
+            st.session_state.pop("statement_scope_id", None)
+    else:
+        st.session_state.ledger_view = "main"
+        st.session_state.pop("statement_scope_id", None)
+        st.session_state.pop("ledger_view_label", None)
+
     auth_ui.login_panel()
     st.caption("FYNTRA v1.0 · By Prakhar Goyal")
 if st.session_state.get("sync_error"):
     st.error(st.session_state.sync_error)
 if st.session_state.get("notice"):
     st.toast(st.session_state.pop("notice"))
-routes[page]()
+
+raw_store = st.session_state.store
+scope_exempt = {"Data & settings", "Bank statements", "About FYNTRA"}
+if page not in scope_exempt and imported:
+    st.session_state.store = scoped_store(
+        raw_store,
+        st.session_state.get("ledger_view", "main"),
+        st.session_state.get("statement_scope_id"),
+    )
+try:
+    routes[page]()
+finally:
+    st.session_state.store = raw_store
 st.caption("Based on recorded data. Budgeting education, not investment or lending advice.")
