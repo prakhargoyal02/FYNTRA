@@ -1,12 +1,12 @@
 """Lazy-loading router for the private bank-statement workspace."""
 import streamlit as st
 
-import statements
 from ui import hero
+import statement_flow
 
 
 def statement_page():
-    statements._cloud()
+    statement_flow._cloud()
     hero(
         "Understand a statement before building a budget.",
         "Upload a bank statement or screenshot, then save it for analysis or import it directly into an existing or new FYNTRA account.",
@@ -16,7 +16,7 @@ def statement_page():
         "Source files are processed in memory. Saved statements remain available for analysis and comparison even after you remove their ledger import."
     )
 
-    options = ["Upload & analyze", "Saved statements", "Compare"]
+    options = ["Upload & analyze", "Saved statements", "Compare", "Manage"]
     current = st.session_state.get("statement_workspace_view")
     if current not in options:
         st.session_state.statement_workspace_view = options[0]
@@ -28,8 +28,10 @@ def statement_page():
     )
 
     if view == "Saved statements":
-        statements._saved_tab(statements._list_statements())
+        statement_flow.saved_view()
     elif view == "Compare":
-        statements._compare_tab(statements._list_statements())
+        statement_flow.compare_view()
+    elif view == "Manage":
+        statement_flow.manage_view()
     else:
-        statements._upload_tab()
+        statement_flow.upload_view()
