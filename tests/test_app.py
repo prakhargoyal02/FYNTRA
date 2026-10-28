@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from pathlib import Path
 os.environ['FYNTRA_TESTING']='1'
 from streamlit.testing.v1 import AppTest
@@ -21,6 +22,35 @@ def test_monthly_review_largest_expense_fallback(tmp_path):
     metric=next(m for m in app.metric if m.label=='Largest expense')
     assert metric.value=='₹123'
     assert metric.help=='Food'
+
+def test_report_date_changes_historical_overview(tmp_path):
+    from database import Store
+    store=Store(tmp_path/'history.db')
+    store.save('accounts',dict(id='a',name='History Bank',opening_date='2026-01-01'))
+    store.save('transactions',dict(id='sep',date='2026-09-05',amount_paise=100000,
+        kind='income',account_id='a',category='Salary',merchant='September income'))
+    store.save('transactions',dict(id='oct',date='2026-10-05',amount_paise=200000,
+        kind='income',account_id='a',category='Salary',merchant='October income'))
+
+    app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'),default_timeout=30).run()
+    app.session_state.store=store
+    app.sidebar.radio[0].set_value('Overview').run()
+
+    report_date=next(w for w in app.sidebar.date_input if w.label=='Report date')
+    report_date.set_value(date(2026,9,15)).run()
+    assert not app.exception
+    money_in=next(m for m in app.metric if m.label=='Money in')
+    cash=next(m for m in app.metric if m.label=='Available cash')
+    assert money_in.value=='₹1,000'
+    assert cash.value=='₹1,000'
+
+    report_date=next(w for w in app.sidebar.date_input if w.label=='Report date')
+    report_date.set_value(date(2026,10,15)).run()
+    assert not app.exception
+    money_in=next(m for m in app.metric if m.label=='Money in')
+    cash=next(m for m in app.metric if m.label=='Available cash')
+    assert money_in.value=='₹2,000'
+    assert cash.value=='₹3,000'
 
 def test_all_screens_and_transaction_crud():
     app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'),default_timeout=30).run()
