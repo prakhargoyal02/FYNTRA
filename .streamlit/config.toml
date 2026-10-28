@@ -1,24 +1,27 @@
 [theme]
 base = "dark"
-primaryColor = "#22B88A"
-backgroundColor = "#0C1312"
-secondaryBackgroundColor = "#151F1D"
-textColor = "#F4F1E8"
-borderColor = "#293D36"
+primaryColor = "#8CF0CB"
+backgroundColor = "#080B0A"
+secondaryBackgroundColor = "#101413"
+textColor = "#F2F4EF"
+borderColor = "#222B28"
 font = "sans-serif"
 baseRadius = "0.8rem"
-buttonRadius = "0.6rem"
-showWidgetBorder = true
+buttonRadius = "0.7rem"
+showWidgetBorder = false
 showSidebarBorder = true
-chartCategoricalColors = ["#68E8B6", "#DCC58B", "#83A99E", "#3A8973", "#B2BDB4", "#6A8E9D"]
+chartCategoricalColors = ["#8CF0CB", "#69D8A0", "#E2B66B", "#F08C83", "#83AAA0", "#7394A0"]
+
 [theme.sidebar]
-backgroundColor = "#101916"
-secondaryBackgroundColor = "#1B2B24"
+backgroundColor = "#0A0D0C"
+secondaryBackgroundColor = "#101413"
+
 [client]
 toolbarMode = "minimal"
+
 [browser]
 gatherUsageStats = false
+
 [server]
 headless = true
 maxUploadSize = 10
-
