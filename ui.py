@@ -92,11 +92,8 @@ def style():
         a { color: var(--f-accent); }
         code, pre, .f-mono { font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
 
-        /* Sidebar: quiet navigation rail, not a second page. */
         [data-testid="stSidebar"] {
-            background:
-                linear-gradient(180deg, rgba(140,240,203,.035), transparent 24%),
-                #0A0D0C;
+            background: linear-gradient(180deg, rgba(140,240,203,.035), transparent 24%), #0A0D0C;
             border-right: 1px solid var(--f-line) !important;
         }
         [data-testid="stSidebar"] > div:first-child { padding-top: 1.25rem; }
@@ -140,7 +137,6 @@ def style():
         }
         .f-side-status strong { color: var(--f-accent); font-weight: 700; }
 
-        /* Editorial page opening. */
         .f-hero {
             position: relative;
             padding: .65rem 0 2.2rem;
@@ -198,7 +194,6 @@ def style():
             animation: f-rule .9s .12s var(--f-ease) both;
         }
 
-        /* Native metrics become editorial financial typography instead of generic cards. */
         [data-testid="stMetric"] {
             background: transparent !important;
             border: 0 !important;
@@ -209,9 +204,7 @@ def style():
             min-height: 104px;
             animation: f-rise .55s var(--f-ease) both;
         }
-        [data-testid="stHorizontalBlock"] > div:first-child [data-testid="stMetric"] {
-            border-top-color: rgba(140,240,203,.56) !important;
-        }
+        [data-testid="stHorizontalBlock"] > div:first-child [data-testid="stMetric"] { border-top-color: rgba(140,240,203,.56) !important; }
         [data-testid="stMetricLabel"] p {
             color: var(--f-muted) !important;
             font-family: "DM Mono", ui-monospace, monospace !important;
@@ -226,12 +219,19 @@ def style():
             letter-spacing: -.055em !important;
             font-variant-numeric: tabular-nums;
         }
-        [data-testid="stHorizontalBlock"] > div:first-child [data-testid="stMetricValue"] {
-            font-size: clamp(2rem, 3.15vw, 3.45rem) !important;
-        }
+        [data-testid="stHorizontalBlock"] > div:first-child [data-testid="stMetricValue"] { font-size: clamp(2rem, 3.15vw, 3.45rem) !important; }
         [data-testid="stMetricDelta"] { font-size: .78rem; }
+        .st-key-fyntra-overview-balance [data-testid="stMetric"] {
+            border-top-color: rgba(140,240,203,.58) !important;
+            padding-top: 1.15rem !important;
+            min-height: 150px;
+        }
+        .st-key-fyntra-overview-balance [data-testid="stMetricValue"] {
+            font-size: clamp(3.6rem, 7vw, 7.2rem) !important;
+            line-height: .9 !important;
+            letter-spacing: -.075em !important;
+        }
 
-        /* Dominant balance stage used by Overview. */
         .f-balance-stage {
             display: grid;
             grid-template-columns: minmax(0,1.45fr) minmax(240px,.55fr);
@@ -242,62 +242,24 @@ def style():
             margin-bottom: 1.2rem;
             animation: f-rise .72s .05s var(--f-ease) both;
         }
-        .f-balance-label {
-            color: var(--f-muted);
-            font-family: "DM Mono", ui-monospace, monospace;
-            font-size: .69rem;
-            letter-spacing: .11em;
-            text-transform: uppercase;
-            margin-bottom: .4rem;
-        }
-        .f-balance-value {
-            font-size: clamp(3.55rem, 8vw, 7.8rem);
-            line-height: .9;
-            letter-spacing: -.075em;
-            font-weight: 610;
-            font-variant-numeric: tabular-nums;
-        }
-        .f-balance-copy {
-            color: #9DA8A3;
-            font-size: .88rem;
-            line-height: 1.65;
-            max-width: 320px;
-            padding-bottom: .25rem;
-        }
+        .f-balance-label { color: var(--f-muted); font-family: "DM Mono", ui-monospace, monospace; font-size: .69rem; letter-spacing: .11em; text-transform: uppercase; margin-bottom: .4rem; }
+        .f-balance-value { font-size: clamp(3.55rem, 8vw, 7.8rem); line-height: .9; letter-spacing: -.075em; font-weight: 610; font-variant-numeric: tabular-nums; }
+        .f-balance-copy { color: #9DA8A3; font-size: .88rem; line-height: 1.65; max-width: 320px; padding-bottom: .25rem; }
         .f-balance-copy strong { color: var(--f-accent); font-weight: 650; }
 
-        /* Sections and transaction rows. */
-        .f-section-head {
-            display: flex;
-            align-items: end;
-            justify-content: space-between;
-            gap: 1rem;
-            margin: 2.1rem 0 .85rem;
-        }
-        .f-section-head h3 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.75rem); }
-        .f-section-head p { margin: 0; color: var(--f-muted); font-size: .82rem; max-width: 440px; }
-        .f-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            align-items: center;
-            gap: 1.25rem;
-            padding: .88rem .15rem;
-            border-bottom: 1px solid rgba(255,255,255,.055);
-            transition: background .2s ease, padding .2s ease, transform .2s ease;
-        }
-        .f-row:hover { background: rgba(255,255,255,.018); padding-left: .55rem; padding-right: .55rem; transform: translateX(2px); }
-        .f-row strong { font-size: .9rem; font-weight: 630; overflow-wrap: anywhere; }
-        .f-row small { display: block; color: #78847F; font-size: .72rem; margin-top: .28rem; }
-        .f-amount { font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; letter-spacing: -.025em; }
-        .f-positive { color: var(--f-positive); }
-        .f-negative { color: #E9B4AE; }
-        .f-neutral { color: var(--f-text); }
+        .f-section-head { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin:2.1rem 0 .85rem; }
+        .f-section-head h3 { margin:0; font-size:clamp(1.25rem,2vw,1.75rem); }
+        .f-section-head p { margin:0; color:var(--f-muted); font-size:.82rem; max-width:440px; }
+        .f-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:1.25rem; padding:.88rem .15rem; border-bottom:1px solid rgba(255,255,255,.055); transition:background .2s ease,padding .2s ease,transform .2s ease; }
+        .f-row:hover { background:rgba(255,255,255,.018); padding-left:.55rem; padding-right:.55rem; transform:translateX(2px); }
+        .f-row strong { font-size:.9rem; font-weight:630; overflow-wrap:anywhere; }
+        .f-row small { display:block; color:#78847F; font-size:.72rem; margin-top:.28rem; }
+        .f-amount { font-variant-numeric:tabular-nums; font-weight:650; white-space:nowrap; letter-spacing:-.025em; }
+        .f-positive { color:var(--f-positive); }
+        .f-negative { color:#E9B4AE; }
+        .f-neutral { color:var(--f-text); }
 
-        /* Budget and goal progress. */
-        .f-progress-card {
-            padding: 1.05rem 0 1.15rem;
-            border-bottom: 1px solid var(--f-line);
-        }
+        .f-progress-card { padding:1.05rem 0 1.15rem; border-bottom:1px solid var(--f-line); }
         .f-progress-top { display:flex; justify-content:space-between; gap:1rem; align-items:baseline; }
         .f-progress-name { font-size:.94rem; font-weight:650; }
         .f-progress-value { font-size:1.05rem; font-weight:650; font-variant-numeric:tabular-nums; }
@@ -305,7 +267,6 @@ def style():
         .f-progress-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,#51B990,var(--f-accent)); transform-origin:left; animation:f-fill .8s var(--f-ease) both; }
         .f-progress-caption { color:var(--f-muted); font-size:.72rem; }
 
-        /* Containers, forms and expanders stay solid, not glassy. */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background: linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,.008));
             border-color: var(--f-line) !important;
@@ -313,90 +274,47 @@ def style():
             box-shadow: 0 16px 38px rgba(0,0,0,.13);
             transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
         }
-        [data-testid="stVerticalBlockBorderWrapper"]:hover { border-color: #2E3A36 !important; }
-        [data-testid="stForm"] {
-            background: #0E1211;
-            border: 1px solid var(--f-line);
-            border-radius: 18px;
-            padding: 1.15rem 1.15rem .45rem;
-        }
-        [data-testid="stExpander"] {
-            border: 1px solid var(--f-line) !important;
-            border-radius: 14px !important;
-            background: #0D1110;
-            overflow: hidden;
-        }
-        [data-testid="stExpander"] details summary { padding-top: .15rem; padding-bottom: .15rem; }
+        [data-testid="stVerticalBlockBorderWrapper"]:hover { border-color:#2E3A36 !important; }
+        [data-testid="stForm"] { background:#0E1211; border:1px solid var(--f-line); border-radius:18px; padding:1.15rem 1.15rem .45rem; }
+        [data-testid="stExpander"] { border:1px solid var(--f-line) !important; border-radius:14px !important; background:#0D1110; overflow:hidden; }
+        [data-testid="stExpander"] details summary { padding-top:.15rem; padding-bottom:.15rem; }
 
-        /* Buttons and controls. */
         .stButton > button, .stDownloadButton > button, [data-testid="stFormSubmitButton"] button {
-            border-radius: 11px !important;
-            border: 1px solid #2B3733 !important;
-            background: #121715 !important;
-            color: var(--f-text) !important;
-            min-height: 2.65rem;
-            font-weight: 650;
-            letter-spacing: -.01em;
-            transition: transform .18s var(--f-ease), border-color .18s ease, background .18s ease, box-shadow .18s ease;
+            border-radius:11px !important;
+            border:1px solid #2B3733 !important;
+            background:#121715 !important;
+            color:var(--f-text) !important;
+            min-height:2.65rem;
+            font-weight:650;
+            letter-spacing:-.01em;
+            transition:transform .18s var(--f-ease),border-color .18s ease,background .18s ease,box-shadow .18s ease;
         }
-        .stButton > button:hover, .stDownloadButton > button:hover, [data-testid="stFormSubmitButton"] button:hover {
-            transform: translateY(-1px);
-            border-color: rgba(140,240,203,.42) !important;
-            background: #17201D !important;
-            box-shadow: 0 10px 26px rgba(0,0,0,.22);
-        }
-        .stButton > button:active, .stDownloadButton > button:active { transform: translateY(0) scale(.985); }
-        button[kind="primary"], [data-testid="stFormSubmitButton"] button[kind="primary"] {
-            background: var(--f-accent) !important;
-            border-color: var(--f-accent) !important;
-            color: #07110D !important;
-            box-shadow: 0 9px 28px rgba(140,240,203,.10);
-        }
-        button[kind="primary"]:hover { background: #A1F5D6 !important; border-color:#A1F5D6 !important; }
-        input, textarea, [data-baseweb="select"] > div, [data-baseweb="input"] > div {
-            border-radius: 10px !important;
-        }
-        [data-baseweb="input"] > div, [data-baseweb="select"] > div, textarea {
-            background-color: #0D1110 !important;
-            border-color: var(--f-line) !important;
-            transition: border-color .18s ease, box-shadow .18s ease;
-        }
-        [data-baseweb="input"] > div:focus-within, [data-baseweb="select"] > div:focus-within, textarea:focus {
-            border-color: rgba(140,240,203,.52) !important;
-            box-shadow: 0 0 0 3px rgba(140,240,203,.07) !important;
-        }
-        [data-testid="stSegmentedControl"] { background: #0D1110; border:1px solid var(--f-line); border-radius:12px; padding:3px; }
+        .stButton > button:hover, .stDownloadButton > button:hover, [data-testid="stFormSubmitButton"] button:hover { transform:translateY(-1px); border-color:rgba(140,240,203,.42) !important; background:#17201D !important; box-shadow:0 10px 26px rgba(0,0,0,.22); }
+        .stButton > button:active, .stDownloadButton > button:active { transform:translateY(0) scale(.985); }
+        button[kind="primary"], [data-testid="stFormSubmitButton"] button[kind="primary"] { background:var(--f-accent) !important; border-color:var(--f-accent) !important; color:#07110D !important; box-shadow:0 9px 28px rgba(140,240,203,.10); }
+        button[kind="primary"]:hover { background:#A1F5D6 !important; border-color:#A1F5D6 !important; }
+        input, textarea, [data-baseweb="select"] > div, [data-baseweb="input"] > div { border-radius:10px !important; }
+        [data-baseweb="input"] > div, [data-baseweb="select"] > div, textarea { background-color:#0D1110 !important; border-color:var(--f-line) !important; transition:border-color .18s ease,box-shadow .18s ease; }
+        [data-baseweb="input"] > div:focus-within, [data-baseweb="select"] > div:focus-within, textarea:focus { border-color:rgba(140,240,203,.52) !important; box-shadow:0 0 0 3px rgba(140,240,203,.07) !important; }
+        [data-testid="stSegmentedControl"] { background:#0D1110; border:1px solid var(--f-line); border-radius:12px; padding:3px; }
         [data-testid="stSegmentedControl"] button { border-radius:9px !important; }
         [data-testid="stFileUploader"] section { background:#0D1110; border-color:#2A3531; border-radius:15px; }
-        [data-testid="stDateInput"] button, [data-testid="stTimeInput"] button { color: var(--f-muted); }
+        [data-testid="stDateInput"] button, [data-testid="stTimeInput"] button { color:var(--f-muted); }
 
-        /* Data surfaces. */
-        [data-testid="stDataFrame"] {
-            border: 1px solid var(--f-line);
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 12px 32px rgba(0,0,0,.10);
-            animation: f-rise .5s var(--f-ease) both;
-        }
-        [data-testid="stDataFrame"] canvas { border-radius: 14px; }
-        [data-testid="stProgressBar"] > div > div { background: linear-gradient(90deg, #4EAE88, var(--f-accent)) !important; }
-        [data-testid="stAlert"] { border-radius: 13px; border: 1px solid var(--f-line); }
-        [data-testid="stAltairChart"] {
-            background: linear-gradient(180deg, rgba(255,255,255,.012), transparent);
-            border-top: 1px solid rgba(255,255,255,.04);
-            padding-top: .45rem;
-            animation: f-rise .62s var(--f-ease) both;
-        }
-        [data-testid="stSpinner"] { color: var(--f-accent); }
+        [data-testid="stDataFrame"] { border:1px solid var(--f-line); border-radius:14px; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,.10); animation:f-rise .5s var(--f-ease) both; }
+        [data-testid="stDataFrame"] canvas { border-radius:14px; }
+        [data-testid="stProgressBar"] > div > div { background:linear-gradient(90deg,#4EAE88,var(--f-accent)) !important; }
+        [data-testid="stAlert"] { border-radius:13px; border:1px solid var(--f-line); }
+        [data-testid="stAltairChart"] { background:linear-gradient(180deg,rgba(255,255,255,.012),transparent); border-top:1px solid rgba(255,255,255,.04); padding-top:.45rem; animation:f-rise .62s var(--f-ease) both; }
+        [data-testid="stSpinner"] { color:var(--f-accent); }
         [data-testid="stToast"] { border:1px solid var(--f-line); background:#111615; }
 
-        /* Small helpers. */
         .f-pill { display:inline-flex; align-items:center; border:1px solid var(--f-line-strong); border-radius:999px; padding:.34rem .58rem; color:#A4B0AB; background:#101514; font-size:.67rem; }
         .f-foot { font-size:.7rem; color:#66716D; margin-top:1.6rem; line-height:1.7; }
         .f-insight { padding:1rem 0 1rem 1rem; border-left:1px solid rgba(140,240,203,.48); }
         .f-insight strong { display:block; font-size:1.15rem; margin-bottom:.25rem; }
         .f-insight span { color:var(--f-muted); font-size:.82rem; line-height:1.55; }
-        ::selection { background: rgba(140,240,203,.24); color: var(--f-text); }
+        ::selection { background:rgba(140,240,203,.24); color:var(--f-text); }
         ::-webkit-scrollbar { width:10px; height:10px; }
         ::-webkit-scrollbar-track { background:#090C0B; }
         ::-webkit-scrollbar-thumb { background:#28332F; border-radius:999px; border:2px solid #090C0B; }
@@ -407,26 +325,27 @@ def style():
 
         @supports (animation-timeline: view()) {
             [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stDataFrame"], [data-testid="stAltairChart"] {
-                animation: f-rise linear both;
-                animation-timeline: view();
-                animation-range: entry 5% cover 24%;
+                animation:f-rise linear both;
+                animation-timeline:view();
+                animation-range:entry 5% cover 24%;
             }
         }
 
         @media (max-width: 900px) {
-            [data-testid="stMainBlockContainer"] { padding: 1.7rem 1.35rem 4rem; }
-            .f-balance-stage { grid-template-columns: 1fr; gap:1rem; }
+            [data-testid="stMainBlockContainer"] { padding:1.7rem 1.35rem 4rem; }
+            .f-balance-stage { grid-template-columns:1fr; gap:1rem; }
             .f-balance-copy { max-width:620px; }
             .f-section-head { align-items:flex-start; flex-direction:column; }
         }
         @media (max-width: 640px) {
-            [data-testid="stMainBlockContainer"] { padding: 1.15rem .9rem 3.5rem; }
+            [data-testid="stMainBlockContainer"] { padding:1.15rem .9rem 3.5rem; }
             .f-hero { padding-top:.25rem; padding-bottom:1.45rem; }
-            .f-hero h1 { font-size:clamp(2.2rem, 12vw, 3.45rem); }
-            .f-balance-value { font-size:clamp(3rem, 17vw, 5rem); }
+            .f-hero h1 { font-size:clamp(2.2rem,12vw,3.45rem); }
+            .f-balance-value { font-size:clamp(3rem,17vw,5rem); }
             .f-row { gap:.7rem; }
             [data-testid="stMetricValue"] { font-size:1.6rem !important; }
             [data-testid="stHorizontalBlock"] > div:first-child [data-testid="stMetricValue"] { font-size:2rem !important; }
+            .st-key-fyntra-overview-balance [data-testid="stMetricValue"] { font-size:clamp(3rem,16vw,4.8rem) !important; }
         }
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior:auto; }
@@ -444,9 +363,7 @@ def brand():
 def sidebar_status(mode):
     label = "Private cloud" if mode == "private" else "Fictional demo"
     qualifier = "Synced workspace" if mode == "private" else "Isolated session"
-    st.html(
-        f'<div class="f-side-status"><strong>{escape(label)}</strong><br>{escape(qualifier)}</div>'
-    )
+    st.html(f'<div class="f-side-status"><strong>{escape(label)}</strong><br>{escape(qualifier)}</div>')
 
 
 def hero(title, subtitle, kicker="YOUR MONEY, WITH CLARITY"):
@@ -471,25 +388,17 @@ def balance_stage(value, label="Available cash", copy="Liquid money across your 
 
 
 def section_header(title, copy=""):
-    st.html(
-        f'<div class="f-section-head"><h3>{escape(title)}</h3>'
-        f'<p>{escape(copy)}</p></div>'
-    )
+    st.html(f'<div class="f-section-head"><h3>{escape(title)}</h3><p>{escape(copy)}</p></div>')
 
 
 def insight_panel(title, copy):
-    st.html(
-        f'<div class="f-insight"><strong>{escape(str(title))}</strong>'
-        f'<span>{escape(str(copy))}</span></div>'
-    )
+    st.html(f'<div class="f-insight"><strong>{escape(str(title))}</strong><span>{escape(str(copy))}</span></div>')
 
 
 def metrics(items):
     """Render native metrics in an intentionally uneven editorial rail."""
     if not items:
         return
-    # A weighted first column makes the lead figure visually dominant while keeping
-    # native st.metric semantics for tests, accessibility and tooltips.
     weights = [1.38] + [1.0] * (len(items) - 1)
     for column, (label, value, help_text) in zip(st.columns(weights, gap="medium"), items):
         column.metric(label, value, border=False, help=help_text)
@@ -511,8 +420,8 @@ def rows(frame, limit=6):
         )
 
 
-def _chart_base(data):
-    return alt.Chart(data).configure_view(stroke=None).configure_axis(
+def _chart_base(c):
+    return c.configure_view(stroke=None).configure_axis(
         domain=False,
         tickColor="#2A3431",
         gridColor="#1E2724",
