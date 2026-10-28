@@ -4,6 +4,7 @@ The core statement parser stays small and readable. This module widens the
 accepted header vocabulary and makes CSV delimiter/header detection more
 forgiving without changing ledger rules.
 """
+import csv
 from io import BytesIO, StringIO
 import re
 
@@ -62,7 +63,7 @@ def _read_delimited(data):
             StringIO(text), header=None, dtype=str, keep_default_na=False,
             sep=None, engine="python",
         )
-    except (pd.errors.ParserError, csv_error()):
+    except (pd.errors.ParserError, csv.Error):
         raw = pd.read_csv(StringIO(text), header=None, dtype=str, keep_default_na=False)
     header = tools._guess_header_row(raw)
     try:
@@ -70,14 +71,8 @@ def _read_delimited(data):
             StringIO(text), header=header, dtype=str, keep_default_na=False,
             sep=None, engine="python",
         )
-    except (pd.errors.ParserError, csv_error()):
+    except (pd.errors.ParserError, csv.Error):
         return pd.read_csv(StringIO(text), header=header, dtype=str, keep_default_na=False)
-
-
-def csv_error():
-    """Return the stdlib CSV parser error class without adding another top-level import."""
-    import csv
-    return csv.Error
 
 
 def _read_tabular(data, suffix):
