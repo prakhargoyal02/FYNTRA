@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
+import math
 import pytest
-from cloud_sync import Cloud, SyncConflict
+from cloud_sync import Cloud, SyncConflict, _json_safe
 from database import Store
 
 
@@ -34,3 +35,8 @@ def test_private_pull_validates_before_replacing(tmp_path):
         factory.return_value.table.return_value.select.return_value.eq.return_value.execute.return_value.data=[{'state':{'schema_version':999},'revision':9}]
         with pytest.raises(ValueError): cloud.pull(store)
         assert store.dump_state()==before
+
+
+def test_json_safe_replaces_non_finite_values():
+    cleaned=_json_safe({'balance':float('nan'),'nested':[1,float('inf'),float('-inf')]})
+    assert cleaned=={'balance':None,'nested':[1,None,None]}
