@@ -95,8 +95,8 @@ auth_ui.restore_browser_session()
 
 routes = {
     "Overview": premium_views.overview_page,
-    "Transactions": views.transactions_page,
-    "Budgets": views.budgets_page,
+    "Transactions": premium_views.transactions_page,
+    "Budgets": premium_views.budgets_page,
     "Accounts": views.accounts_page,
     "Bills & subscriptions": views.commitments_page,
     "Goals & debt": views.goals_page,
