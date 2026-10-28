@@ -21,6 +21,7 @@ statement_tools._ocr_lines = ocr_lines
 import statement_workspace
 import calendar_view
 import views
+import premium_views
 import data_settings
 import about
 
@@ -93,7 +94,7 @@ if "store" not in st.session_state:
 auth_ui.restore_browser_session()
 
 routes = {
-    "Overview": views.overview_page,
+    "Overview": premium_views.overview_page,
     "Transactions": views.transactions_page,
     "Budgets": views.budgets_page,
     "Accounts": views.accounts_page,
