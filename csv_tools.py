@@ -1,6 +1,7 @@
 """Lossless, formula-safe CSV portability with an atomic prospective-state import."""
 from copy import deepcopy
 from io import StringIO
+import re
 from uuid import uuid4
 import pandas as pd
 from database import TABLES,money
@@ -23,6 +24,19 @@ REFERENCES = {
 "account_id":"accounts","to_account_id":"accounts","recurring_id":"recurring_transactions",
 "goal_id":"savings_goals","debt_id":"debts","transaction_id":"transactions","parent_id":"bills"
 }
+BANK_DATE_HEADERS = {"date","transaction date","txn date","value date","posting date","tran date"}
+BANK_MONEY_HEADERS = {"debit","credit","withdrawal","deposit","withdrawal amount","deposit amount","debit amount","credit amount","amount","transaction amount","txn amount"}
+
+def _header(value):
+    value = re.sub(r"[^a-z0-9]+"," ",str(value or "").strip().casefold())
+    return re.sub(r"\s+"," ",value).strip()
+
+def looks_like_bank_statement(columns):
+    cols = {_header(col) for col in columns}
+    has_date = any(any(alias==col or alias in col for alias in BANK_DATE_HEADERS) for col in cols)
+    has_money = any(any(alias==col or alias in col for alias in BANK_MONEY_HEADERS) for col in cols)
+    return has_date and has_money
+
 def _safe(value):
     if isinstance(value,str) and value.startswith(("=","+","-","@","\t","\r","'")):
         return "'"+value
@@ -56,7 +70,9 @@ def detect_type(columns):
     if "kind" in cols and "recurring_transactions" in matches:
         matches = ["recurring_transactions"]
     if len(matches)!=1:
-        raise ValueError("Cannot identify this CSV from its columns. Use an exported template or the transaction template.")
+        if looks_like_bank_statement(columns):
+            raise ValueError("This looks like a bank statement, not a FYNTRA backup CSV. In Private sign in, open Bank statements → Upload & review. You can analyze a statement there without creating an account.")
+        raise ValueError("Cannot identify this CSV from its columns. Use an exported FYNTRA template or the simple transaction template.")
     return matches[0]
 
 def parse_files(store,files):
@@ -144,4 +160,3 @@ def import_csvs(store,files,mode="add"):
         candidate["tables"][table] = pd.DataFrame(list(by_id.values())).drop_duplicates(subset=["id"]).to_dict("records") if by_id else []
     store.restore_state(candidate)
     return counts
-
