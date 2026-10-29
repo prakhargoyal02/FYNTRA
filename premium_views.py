@@ -39,12 +39,12 @@ def _cash_flow_chart(summary):
 
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=32)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=34)
         .encode(
             x=alt.X(
                 "month:N",
                 title=None,
-                scale=alt.Scale(paddingInner=0.24, paddingOuter=0.08),
+                scale=alt.Scale(paddingInner=0.22, paddingOuter=0.07),
                 axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=10),
             ),
             xOffset=alt.XOffset(
@@ -71,7 +71,7 @@ def _cash_flow_chart(summary):
                 alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f"),
             ],
         )
-        .properties(height=225)
+        .properties(height=330)
         .configure_view(stroke=None)
     )
     st.altair_chart(
