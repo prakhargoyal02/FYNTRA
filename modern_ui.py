@@ -1,7 +1,7 @@
-"""Reference-driven presentation helpers for FYNTRA.
+"""Template-driven presentation helpers for FYNTRA.
 
-This module changes only visual presentation. Finance calculations, persistence and
-business rules remain in the existing analytics/database modules.
+This module changes presentation only. Finance calculations, persistence and business
+rules remain in the existing analytics/database modules.
 """
 import altair as alt
 import streamlit as st
@@ -19,62 +19,65 @@ from ui import (
     sidebar_status,
 )
 
-# Real-world product palette: blue is brand/interface, green/red are reserved for
-# financial meaning, and ochre is reserved for warnings.
-ACCENT = "#3F5FCA"
-POSITIVE = "#2F7D5A"
-NEGATIVE = "#C76555"
-WARNING = "#B47A2D"
-INK = "#1B2530"
-MUTED = "#707772"
-GRID = "#D9DAD5"
+# Real-world product palette. Blue anchors the interface; green/red/ochre keep their
+# financial meanings instead of becoming decorative brand colors.
+ACCENT = "#2F6B8A"
+ACCENT_2 = "#527C9D"
+POSITIVE = "#327A5F"
+NEGATIVE = "#C96C5A"
+WARNING = "#B8873D"
+INK = "#1A1E22"
+MUTED = "#6D7478"
+GRID = "#D8D7D1"
 
 
 def chart(data, x, y, kind="bar", color=ACCENT, height=280, title=None):
-    """Render Altair with a light editorial finance theme."""
+    """Render Altair with the template-inspired FYNTRA finance theme."""
     if data.empty:
         st.caption("Your chart appears when you add records.")
         return
-    c = alt.Chart(data)
+    base = alt.Chart(data)
     if kind == "line":
-        c = c.mark_line(
+        visual = base.mark_line(
             color=color,
-            strokeWidth=2.7,
-            point=alt.OverlayMarkDef(size=38, filled=True),
+            strokeWidth=3,
+            point=alt.OverlayMarkDef(size=44, filled=True, strokeWidth=0),
             interpolate="monotone",
         )
     elif kind == "area":
-        c = c.mark_area(
+        visual = base.mark_area(
             color=color,
-            opacity=.10,
-            line={"color": color, "strokeWidth": 2.5},
+            opacity=.13,
+            line={"color": color, "strokeWidth": 3},
             interpolate="monotone",
         )
     else:
-        c = c.mark_bar(color=color, cornerRadiusTopLeft=5, cornerRadiusTopRight=5, opacity=.92)
-    c = c.encode(
+        visual = base.mark_bar(color=color, cornerRadiusTopLeft=7, cornerRadiusTopRight=7, opacity=.92)
+    visual = visual.encode(
         x=alt.X(x, title=None, axis=alt.Axis(labelAngle=0)),
-        y=alt.Y(y, title="₹", axis=alt.Axis(format="~s")),
-        tooltip=[x, y],
+        y=alt.Y(y, title=None, axis=alt.Axis(format="~s")),
+        tooltip=[x, alt.Tooltip(y, format=",.0f")],
     ).properties(height=height)
-    c = c.configure_view(stroke=None).configure_axis(
+    visual = visual.configure_view(stroke=None).configure_axis(
         domain=False,
-        tickColor="#C9CBC6",
+        ticks=False,
         gridColor=GRID,
         gridOpacity=.7,
-        labelColor="#69716E",
-        titleColor="#69716E",
-        labelFont="Instrument Sans",
-        titleFont="Instrument Sans",
+        labelColor=MUTED,
+        titleColor=MUTED,
+        labelFont="Host Grotesk",
+        titleFont="Host Grotesk",
         labelFontSize=11,
         titleFontSize=11,
         titleFontWeight=500,
+        labelPadding=8,
     ).configure_legend(
-        labelColor="#69716E",
-        titleColor="#69716E",
-        labelFont="Instrument Sans",
-        titleFont="Instrument Sans",
+        labelColor=MUTED,
+        titleColor=MUTED,
+        labelFont="Host Grotesk",
+        titleFont="Host Grotesk",
         orient="bottom",
         padding=8,
+        symbolType="circle",
     )
-    st.altair_chart(c, width="stretch", alt=title or "Financial data from your recorded ledger")
+    st.altair_chart(visual, width="stretch", alt=title or "Financial data from your recorded ledger")
