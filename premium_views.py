@@ -1,4 +1,4 @@
-"""Template-driven page compositions over the existing FYNTRA domain functions."""
+"""Reference-driven presentation compositions over existing FYNTRA domain functions."""
 from datetime import timedelta
 
 import altair as alt
@@ -10,10 +10,8 @@ import views
 from database import money
 from modern_ui import (
     ACCENT,
-    ACCENT_2,
     NEGATIVE,
     POSITIVE,
-    WARNING,
     chart,
     hero,
     insight_panel,
@@ -40,48 +38,41 @@ def _cash_flow_chart(summary):
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=7, cornerRadiusTopRight=7, opacity=.94)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, opacity=.92)
         .encode(
-            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelColor="#697176")),
+            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelColor="#69716E")),
             xOffset="Flow:N",
-            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, ticks=False, gridColor="#D8D7D1", labelColor="#697176")),
+            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#D9DAD5", tickColor="#C9CBC6", labelColor="#69716E")),
             color=alt.Color(
                 "Flow:N",
                 scale=alt.Scale(domain=["income", "expenses"], range=[POSITIVE, NEGATIVE]),
-                legend=alt.Legend(orient="bottom", title=None, labelColor="#697176", padding=12),
+                legend=alt.Legend(orient="bottom", title=None, labelColor="#69716E", padding=10),
             ),
             tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("Flow:N"), alt.Tooltip("Amount:Q", format=",.0f")],
         )
-        .properties(height=330)
+        .properties(height=320)
         .configure_view(stroke=None)
     )
     st.altair_chart(flow, width="stretch", alt="Income and expenses over recent months")
 
 
 def overview_page():
-    """Landing-page rhythm plus finance-dashboard density, using existing data."""
+    """Bento-style financial story built from the existing analytics functions."""
     month = _month()
     store = _store()
     o = an.overview(store, month)
     period = pd.Period(month).strftime("%B %Y")
     sub = an.subscription_summary(store)
 
-    with st.container(key="overview-hero-stage"):
-        intro, brief = st.columns([1.42, .58], gap="large", vertical_alignment="bottom")
-        with intro:
-            hero(
-                "Know where your money goes. Decide where it goes next.",
-                "One financial workspace for position, movement, pressure and what is coming up next.",
-                f"{period.upper()} / OVERVIEW",
-            )
-        with brief:
-            st.caption("THIS MONTH")
-            st.metric("Net movement", rupees(o["net"]), help="Income minus expenses in the selected month.")
-            insight_panel(o["pulse"], o["pulse_detail"])
+    hero(
+        "See your money as one system.",
+        "Position, movement, pressure and what comes next, arranged like a product workspace instead of a dashboard template.",
+        f"{period.upper()} / OVERVIEW",
+    )
 
-    position, inflow, outflow = st.columns([1.55, .72, .72], gap="medium")
-    with position:
-        with st.container(border=True, key="overview-position-card"):
+    balance_col, side_col = st.columns([1.55, .85], gap="medium")
+    with balance_col:
+        with st.container(border=True, key="bento-balance"):
             st.caption("AVAILABLE CASH")
             st.metric(
                 "Available cash",
@@ -89,47 +80,60 @@ def overview_page():
                 label_visibility="collapsed",
                 help="Current non-investment, non-card account balances through the selected report date.",
             )
-            low_left, low_right = st.columns(2)
-            low_left.metric("Net worth", rupees(o["net_worth"]), help="Assets minus negative balances and standalone debts.")
-            low_right.metric("Savings rate", f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—")
-    with inflow:
-        with st.container(border=True, key="overview-income-card"):
-            st.caption("MONEY IN")
-            st.metric("Money in", rupees(o["income"]), label_visibility="collapsed")
-            st.caption("Recorded income this report month.")
-    with outflow:
-        with st.container(border=True, key="overview-expense-card"):
-            st.caption("MONEY OUT")
-            st.metric("Money out", rupees(o["expenses"]), label_visibility="collapsed")
-            st.caption("Recorded spending. Transfers excluded.")
+            bottom_left, bottom_right = st.columns(2, gap="medium")
+            bottom_left.metric("Net this month", rupees(o["net"]), help="Income minus expenses this month.")
+            bottom_right.metric("Net worth", rupees(o["net_worth"]), help="Assets minus negative balances and standalone debts.")
+            st.caption("Liquid position across the accounts currently included in this data view.")
 
-    movement, pressure = st.columns([1.45, .75], gap="medium")
-    with movement:
-        with st.container(border=True, key="overview-cashflow-panel"):
-            section_header("Cash flow", "Six recent months. Income and spending share one scale so the relationship is obvious.")
+    with side_col:
+        with st.container(border=True, key="bento-month"):
+            st.caption(period.upper())
+            left, right = st.columns(2)
+            left.metric("Money in", rupees(o["income"]), help="Recorded income this report month.")
+            right.metric("Money out", rupees(o["expenses"]), help="Recorded expenses; transfers excluded.")
+            st.metric(
+                "Savings rate",
+                f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—",
+                help="Net cash flow divided by income.",
+            )
+        with st.container(border=True, key="bento-pulse"):
+            insight_panel(o["pulse"], o["pulse_detail"])
+
+    motion_col, budget_col = st.columns([1.55, .85], gap="medium")
+    with motion_col:
+        with st.container(border=True, key="bento-motion"):
+            section_header("Money in motion", "Six recent months, with income and spending shown together.")
             _cash_flow_chart(an.monthly_summary(store).tail(6))
-    with pressure:
-        with st.container(border=True, key="overview-budget-panel"):
-            section_header("Budget pressure", "How much of the monthly plan is still yours to use.")
-            st.metric("Budget left", rupees(o["budget_remaining"]))
-            st.metric("Monthly limit", rupees(o["budget_limit"]))
-            st.metric("Subscriptions / month", rupees(sub["monthly_cost"]))
+    with budget_col:
+        with st.container(border=True, key="bento-budget"):
+            section_header("Budget room", "How much of the monthly plan remains.")
+            st.metric("Budget left", rupees(o["budget_remaining"]), help="Monthly spending limit minus expenses.")
+            metrics([
+                ("Limit", rupees(o["budget_limit"]), "Monthly category-budget total or profile limit."),
+                ("Spent", rupees(o["expenses"]), "Recorded expenses this month."),
+            ])
 
-    category_col, activity_col = st.columns([.9, 1.1], gap="medium")
-    with category_col:
-        with st.container(border=True, key="overview-category-panel"):
+    spend_col, position_col, activity_col = st.columns([1.15, .8, 1.05], gap="medium")
+    with spend_col:
+        with st.container(border=True, key="bento-spending"):
             section_header("Where it went", "Selected-month spending by category.")
-            chart(an.category_summary(store, month), "category:N", "amount:Q", color=NEGATIVE, height=300, title="Spending by category")
+            chart(an.category_summary(store, month), "category:N", "amount:Q", color=NEGATIVE, height=275, title="Spending by category")
+    with position_col:
+        with st.container(border=True, key="bento-position"):
+            section_header("Position", "A compact read on recurring pressure and retained cash.")
+            st.metric("Cash saved", rupees(o["net"]), help="Income minus expenses for the report month.")
+            st.metric("Subscriptions", rupees(sub["monthly_cost"]), help="Monthly equivalent of active subscriptions.")
+            st.metric("Debt", rupees(o["debt"]), help="Recorded liabilities through the report date.")
     with activity_col:
-        with st.container(border=True, key="overview-activity-panel"):
-            section_header("Latest activity", "The newest recorded movements in the current data view.")
+        with st.container(border=True, key="bento-activity"):
+            section_header("Latest activity", "Newest recorded movements in this data view.")
             recent = an.transactions_frame(store)
             if recent.empty:
                 st.info("Add your first transaction to see activity here.")
             else:
-                rows(recent, limit=8)
+                rows(recent, limit=6)
 
-    with st.container(border=True, key="overview-horizon-panel"):
+    with st.container(border=True, key="bento-horizon"):
         section_header("On the horizon", "Upcoming commitments around the selected report date.")
         upcoming = an.timeline(store, views.today() - timedelta(days=30), views.today() + timedelta(days=14))
         upcoming = upcoming.loc[upcoming.status.ne("Recorded")]
@@ -153,26 +157,12 @@ def overview_page():
 
 
 def transactions_page():
-    """Admin-style ledger workspace while keeping the original transaction workflows."""
-    frame_all = an.transactions_frame(_store(), posted=False)
-    month_income = float(frame_all.loc[frame_all.kind.eq("income"), "amount"].sum()) if not frame_all.empty else 0.0
-    month_expense = float(frame_all.loc[frame_all.kind.eq("expense"), "amount"].sum()) if not frame_all.empty else 0.0
-
-    with st.container(key="transactions-hero-stage"):
-        intro, quick = st.columns([1.35, .65], gap="large", vertical_alignment="bottom")
-        with intro:
-            hero(
-                "Every move, accounted for.",
-                "Search the ledger, record a movement, or manage predictable recurring entries without losing the big picture.",
-                "TRANSACTIONS",
-            )
-        with quick:
-            st.caption("LEDGER SNAPSHOT")
-            metrics([
-                ("Income", rupees(month_income), "Visible ledger income."),
-                ("Spending", rupees(month_expense), "Visible ledger expenses."),
-            ])
-
+    """Transaction CRUD preserved inside a two-column product workspace."""
+    hero(
+        "Every move, accounted for.",
+        "Search the ledger, record a movement, or manage predictable recurring entries.",
+        "TRANSACTIONS",
+    )
     mode = st.segmented_control("View", ["History", "Add transaction", "Recurring"], default="History")
     if mode == "Add transaction":
         views.transaction_form()
@@ -181,7 +171,7 @@ def transactions_page():
         views.recurring_page()
         return
 
-    frame = frame_all
+    frame = an.transactions_frame(_store(), posted=False)
     search_col, filter_col = st.columns([1.55, .45], gap="medium", vertical_alignment="bottom")
     with search_col:
         search = st.text_input("Search transactions", placeholder="Merchant, note, category, tag or amount")
@@ -202,7 +192,11 @@ def transactions_page():
         methods = st.multiselect("Payment methods", sorted(frame.payment_method.unique().tolist()))
         tag = st.text_input("Tag filter")
         low = st.number_input("Minimum amount", min_value=0.0, value=0.0)
-        high = st.number_input("Maximum amount", min_value=0.0, value=max(100000.0, float(frame.amount.max()) if not frame.empty else 100000.0))
+        high = st.number_input(
+            "Maximum amount",
+            min_value=0.0,
+            value=max(100000.0, float(frame.amount.max()) if not frame.empty else 100000.0),
+        )
 
     frame = frame.loc[frame.date.between(pd.Timestamp(start), pd.Timestamp(end)) & frame.amount.between(low, high)]
     for field, values in [("category", cats), ("account_name", accts), ("kind", kinds), ("payment_method", methods)]:
@@ -211,24 +205,28 @@ def transactions_page():
     if tag:
         frame = frame.loc[frame.tags.fillna("").str.contains(tag, case=False, regex=False)]
 
-    frame = frame.sort_values("date" if order in {"Newest", "Oldest"} else "amount", ascending=order in {"Oldest", "Smallest"})
+    frame = frame.sort_values(
+        "date" if order in {"Newest", "Oldest"} else "amount",
+        ascending=order in {"Oldest", "Smallest"},
+    )
     visible_income = float(frame.loc[frame.kind.eq("income"), "amount"].sum()) if not frame.empty else 0.0
     visible_expense = float(frame.loc[frame.kind.eq("expense"), "amount"].sum()) if not frame.empty else 0.0
 
-    ledger_col, summary_col = st.columns([1.5, .7], gap="medium")
+    ledger_col, summary_col = st.columns([1.55, .65], gap="medium")
     with ledger_col:
-        with st.container(border=True, key="transactions-ledger-panel"):
+        with st.container(border=True, key="transaction-ledger"):
             section_header("Ledger", "Future entries stay planned and do not affect current balances.")
             if frame.empty:
                 st.info("No transactions match these filters.")
             else:
-                rows(frame, limit=28)
-                if len(frame) > 28:
-                    st.caption(f"Showing 28 of {len(frame)} filtered transactions. Detailed ledger contains every row.")
+                rows(frame, limit=24)
+                if len(frame) > 24:
+                    st.caption(f"Showing 24 of {len(frame)} filtered transactions. Detailed ledger contains every row.")
+
     with summary_col:
-        with st.container(border=True, key="transactions-summary-panel"):
-            section_header("Selection", "Live totals for what you are looking at.")
-            st.metric("Rows", str(len(frame)))
+        with st.container(border=True, key="transaction-summary"):
+            section_header("Selection snapshot", "Live totals for what you are looking at.")
+            st.metric("Visible rows", str(len(frame)))
             st.metric("Income", rupees(visible_income))
             st.metric("Spending", rupees(visible_expense))
 
@@ -257,41 +255,33 @@ def transactions_page():
 
 
 def budgets_page():
-    """Budget planning presented as a responsive product story rather than repeated cards."""
+    """Budget information arranged as an asymmetric planning workspace."""
     month = _month()
     store = _store()
     budget = an.budget_summary(store, month)
     overview = an.overview(store, month)
+    hero(
+        "Give every rupee a little room.",
+        "See how the plan is holding up, then test a purchase before it becomes a transaction.",
+        f"BUDGETS / {month}",
+    )
 
-    with st.container(key="budgets-hero-stage"):
-        intro, headline = st.columns([1.3, .7], gap="large", vertical_alignment="bottom")
-        with intro:
-            hero(
-                "Give every rupee a little room.",
-                "See how the plan is holding up, then test a purchase before it becomes a transaction.",
-                f"BUDGETS / {month}",
-            )
-        with headline:
-            st.caption("MONTHLY ROOM")
-            st.metric("Remaining", rupees(overview["budget_remaining"]), label_visibility="collapsed")
-            st.caption("What remains after recorded spending.")
-
-    summary_col, planner_col = st.columns([1.2, .8], gap="medium")
+    summary_col, planner_col = st.columns([1.25, .75], gap="medium")
     with summary_col:
-        with st.container(border=True, key="budgets-summary-panel"):
-            section_header("Budget position", "The total plan and the amount already consumed.")
-            a, b = st.columns(2)
-            a.metric("Monthly limit", rupees(overview["budget_limit"]))
-            b.metric("Spent", rupees(overview["expenses"]))
-            st.metric("Remaining", rupees(overview["budget_remaining"]))
+        with st.container(border=True, key="budget-summary"):
+            st.caption("MONTHLY BUDGET POSITION")
+            st.metric("Remaining", rupees(overview["budget_remaining"]), help="Limit minus recorded spending.")
+            left, right = st.columns(2)
+            left.metric("Monthly limit", rupees(overview["budget_limit"]), help="Profile limit, or the sum of category budgets.")
+            right.metric("Spent", rupees(overview["expenses"]), help="All expenses, including unbudgeted categories.")
     with planner_col:
-        with st.container(border=True, key="budgets-planner-panel"):
+        with st.container(border=True, key="budget-planner"):
             section_header("Can it fit?", "Test a purchase against the remaining monthly budget.")
             spend = st.number_input("Planned purchase (₹)", min_value=0.0, value=1000.0, step=100.0)
             st.metric("Left after purchase", rupees(overview["budget_remaining"] - spend))
             st.caption("Arithmetic against your plan, not lending or investment advice.")
 
-    with st.container(border=True, key="budgets-category-panel"):
+    with st.container(border=True, key="budget-pressure"):
         section_header("Category pressure", "Scan the categories that are consuming the plan fastest.")
         if budget.empty:
             st.info("Create a category budget to see utilization here.")
@@ -312,7 +302,11 @@ def budgets_page():
         with st.form("budget"):
             budget_month = st.text_input("Budget month (YYYY-MM)", row.get("month", month))
             category = st.text_input("Budget category", row.get("category", "Food"))
-            limit = st.number_input("Category limit (₹)", min_value=0.0, value=float(row.get("limit_paise", 500000) / 100))
+            limit = st.number_input(
+                "Category limit (₹)",
+                min_value=0.0,
+                value=float(row.get("limit_paise", 500000) / 100),
+            )
             submitted = st.form_submit_button("Save budget", type="primary")
         if submitted:
             views.save("budgets", row, dict(month=budget_month, category=category, limit_paise=money(limit)))
