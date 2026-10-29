@@ -27,19 +27,6 @@ import about
 
 REPORT_START = date(2002, 12, 2)
 LEDGER_LABELS = {"Main ledger": "main", "Merged": "merged", "One statement": "statement"}
-NAV_MARKS = {
-    "Overview": "⌂",
-    "Transactions": "↕",
-    "Budgets": "◫",
-    "Accounts": "◎",
-    "Bills & subscriptions": "◷",
-    "Goals & debt": "◇",
-    "Cash flow & insights": "⌁",
-    "Calendar": "□",
-    "Data & settings": "↧",
-    "Bank statements": "▤",
-    "About FYNTRA": "○",
-}
 
 
 def _valid_report_date(value):
@@ -113,12 +100,9 @@ with st.sidebar:
     brand()
     st.caption("Know where your money goes. Decide where it goes next.")
     sidebar_status(st.session_state.mode)
-    page = st.radio(
-        "Workspace",
-        list(routes),
-        label_visibility="collapsed",
-        format_func=lambda item: f"{NAV_MARKS.get(item, '·')}   {item}",
-    )
+    # Keep the stored option values exactly equal to route names. Styling supplies the
+    # visual polish without transforming values that tests and callbacks depend on.
+    page = st.radio("Workspace", list(routes), label_visibility="collapsed")
 
     st.divider()
     st.caption("REPORTING WINDOW")
