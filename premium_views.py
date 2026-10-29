@@ -236,7 +236,7 @@ def transactions_page():
                     for row in frame.itertuples()
                 }
                 selected = st.selectbox(
-                    "Edit a transaction",
+                    "Select a transaction to edit",
                     [None] + list(labels),
                     format_func=lambda value: "Choose a transaction" if value is None else labels[value],
                 )
