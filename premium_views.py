@@ -1,5 +1,6 @@
 """Responsive finance workspace over FYNTRA's existing domain functions."""
 from datetime import timedelta
+from html import escape
 
 import altair as alt
 import pandas as pd
@@ -26,27 +27,178 @@ def _page_header(title, copy, kicker):
 
 
 def _cash_flow_chart(summary):
+    """Compact admin-style combination chart: expenses as bars, income as a wave."""
     if summary.empty:
         st.caption("Your cash-flow chart appears when you add transactions.")
         return
-    plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
-    flow = (
-        alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-        .encode(
-            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False)),
-            xOffset="Flow:N",
-            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
-            color=alt.Color("Flow:N", scale=alt.Scale(domain=["income", "expenses"], range=[POSITIVE, "#627E73"]), legend=alt.Legend(orient="bottom", title=None)),
-            tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("Flow:N"), alt.Tooltip("Amount:Q", format=",.0f")],
-        )
-        .properties(height=260)
-        .configure_view(stroke=None)
+    base = alt.Chart(summary).encode(
+        x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=8)),
     )
-    st.altair_chart(flow, width="stretch", alt="Income and expenses over recent months")
+    bars = base.mark_bar(
+        size=22,
+        cornerRadiusTopLeft=4,
+        cornerRadiusTopRight=4,
+        color="#627E73",
+        opacity=.68,
+    ).encode(
+        y=alt.Y("expenses:Q", title=None, axis=alt.Axis(format="~s", domain=False, ticks=False, gridColor="#273532")),
+        tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("expenses:Q", title="Spending (₹)", format=",.0f")],
+    )
+    income_line = base.mark_line(
+        color=POSITIVE,
+        strokeWidth=3,
+        interpolate="monotone",
+    ).encode(
+        y=alt.Y("income:Q", title=None),
+        tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("income:Q", title="Income (₹)", format=",.0f")],
+    )
+    points = base.mark_point(
+        color=POSITIVE,
+        filled=True,
+        size=52,
+        stroke="#0B1010",
+        strokeWidth=1.5,
+    ).encode(y="income:Q")
+    flow = alt.layer(bars, income_line, points).properties(height=205).configure_view(stroke=None)
+    st.altair_chart(flow, width="stretch", alt="Recent income line compared with spending bars")
+    st.html(
+        '<div class="f-chart-legend"><span class="income">Income</span><span class="expense">Spending</span></div>'
+    )
 
 
-from html import escape
+def _budget_donut(spent, limit, height=178):
+    """Render used/remaining budget as a compact donut with over-budget support."""
+    limit = float(limit or 0)
+    spent = max(0.0, float(spent or 0))
+    if limit <= 0:
+        st.caption("Set a monthly limit to unlock budget utilization.")
+        return
+    used = min(spent, limit)
+    remaining = max(0.0, limit - spent)
+    over = max(0.0, spent - limit)
+    records = [{"Part": "Used", "Amount": used}]
+    if remaining:
+        records.append({"Part": "Remaining", "Amount": remaining})
+    if over:
+        records.append({"Part": "Over", "Amount": over})
+    frame = pd.DataFrame(records)
+    palette = alt.Scale(
+        domain=["Used", "Remaining", "Over"],
+        range=[POSITIVE, "#2A3B32", NEGATIVE],
+    )
+    arc = alt.Chart(frame).mark_arc(innerRadius=52, outerRadius=76, cornerRadius=5).encode(
+        theta=alt.Theta("Amount:Q", stack=True),
+        color=alt.Color("Part:N", scale=palette, legend=alt.Legend(orient="bottom", title=None)),
+        tooltip=["Part:N", alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f")],
+    )
+    label = pd.DataFrame({"Label": [f"{spent / limit:.0%}"]})
+    center = alt.Chart(label).mark_text(color="#F3F3E9", fontSize=22, fontWeight=600).encode(text="Label:N")
+    st.altair_chart((arc + center).properties(height=height).configure_view(stroke=None), width="stretch", alt="Budget used and remaining")
+
+
+def _expense_history(store):
+    frame = an.transactions_frame(store)
+    if frame.empty:
+        return frame
+    frame = frame.loc[frame.kind.eq("expense")].copy()
+    if frame.empty:
+        return frame
+    frame["date"] = pd.to_datetime(frame["date"])
+    frame = frame.loc[frame.date.dt.date.le(views.today())]
+    return frame
+
+
+def _comparison_options(frame, mode):
+    if frame.empty:
+        return frame, []
+    working = frame.copy()
+    if mode == "Month":
+        working["_period"] = working.date.dt.to_period("M")
+        working["_period_label"] = working["_period"].map(lambda value: value.strftime("%b %Y"))
+        working["_step"] = working.date.dt.day
+        working["_step_label"] = working["_step"].astype(str)
+    elif mode == "Week":
+        working["_period"] = working.date.dt.to_period("W-SUN")
+        working["_period_label"] = working["_period"].map(
+            lambda value: f'{value.start_time:%d %b}–{value.end_time:%d %b %Y}'
+        )
+        working["_step"] = working.date.dt.dayofweek
+        working["_step_label"] = working.date.dt.strftime("%a")
+    else:
+        working["_period"] = working.date.dt.normalize()
+        working["_period_label"] = working.date.dt.strftime("%d %b %Y")
+        working["_step"] = 0
+        working["_step_label"] = working["_period_label"]
+    ordered = (
+        working[["_period", "_period_label"]]
+        .drop_duplicates()
+        .sort_values("_period", ascending=False)
+    )
+    return working, ordered["_period_label"].tolist()
+
+
+def _spending_comparison(store):
+    """Compare up to three months, weeks or days without opening a calendar."""
+    history = _expense_history(store)
+    title_col, menu_col = st.columns([.86, .14], vertical_alignment="top")
+    with title_col:
+        section_header("Compare spending", "Choose months, weeks or days and compare recorded expenses.")
+    with menu_col:
+        with st.popover("⋯"):
+            mode = st.radio(
+                "Compare by",
+                ["Month", "Week", "Day"],
+                horizontal=True,
+                key="overview-compare-mode",
+            )
+            prepared, options = _comparison_options(history, mode)
+            selection_key = f"overview-compare-periods-{mode.lower()}"
+            existing = st.session_state.get(selection_key)
+            if existing and any(item not in options for item in existing):
+                st.session_state.pop(selection_key, None)
+            selected = st.multiselect(
+                "Periods",
+                options,
+                default=options[:2],
+                max_selections=3,
+                key=selection_key,
+                help="Compare up to three recorded periods. No calendar selection is needed.",
+            )
+
+    # The popover values are available during the same Streamlit run.
+    if history.empty or not options:
+        st.caption("Add expenses across more than one period to compare spending.")
+        return
+    if not selected:
+        st.caption("Choose at least one period from the three-dot menu.")
+        return
+
+    picked = prepared.loc[prepared["_period_label"].isin(selected)].copy()
+    totals = picked.groupby("_period_label", as_index=False).amount.sum()
+    if mode == "Day":
+        plot = alt.Chart(totals).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=30).encode(
+            x=alt.X("_period_label:N", title=None, sort=selected, axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
+            color=alt.Color("_period_label:N", title=None, legend=None, scale=alt.Scale(range=[POSITIVE, "#7BB8CC", "#E7C887"])),
+            tooltip=[alt.Tooltip("_period_label:N", title="Day"), alt.Tooltip("amount:Q", title="Spending (₹)", format=",.0f")],
+        ).properties(height=145)
+    else:
+        grouped = picked.groupby(["_period_label", "_step", "_step_label"], as_index=False).amount.sum()
+        if mode == "Week":
+            x = alt.X("_step_label:N", title=None, sort=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], axis=alt.Axis(labelAngle=0))
+        else:
+            x = alt.X("_step:Q", title="Day", axis=alt.Axis(domain=False, ticks=False, tickCount=7))
+        plot = alt.Chart(grouped).mark_line(interpolate="monotone", strokeWidth=2.6, point=alt.OverlayMarkDef(size=34, filled=True)).encode(
+            x=x,
+            y=alt.Y("amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
+            color=alt.Color("_period_label:N", title=None, scale=alt.Scale(range=[POSITIVE, "#7BB8CC", "#E7C887"])),
+            tooltip=[alt.Tooltip("_period_label:N", title=mode), alt.Tooltip("_step_label:N", title="Point"), alt.Tooltip("amount:Q", title="Spending (₹)", format=",.0f")],
+        ).properties(height=155)
+    st.altair_chart(plot.configure_view(stroke=None), width="stretch", alt=f"Spending comparison by {mode.lower()}")
+    metric_cols = st.columns(min(3, len(totals)), gap="small")
+    total_map = dict(zip(totals["_period_label"], totals.amount))
+    for column, label in zip(metric_cols, selected):
+        column.metric(label, rupees(total_map.get(label, 0)))
 
 
 def _navigate(page, transaction_mode=None):
@@ -102,46 +254,48 @@ def overview_page():
 
     chart_col, budget_col = st.columns([1.65, 1], gap="medium")
     with chart_col:
-        with st.container(border=True, key="dk-cashflow-card", height="stretch"):
-            section_header("Money in motion", "Income and spending · recent months")
+        with st.container(border=True, key="dk-cashflow-card"):
+            section_header("Money in motion", "Income wave + spending bars · recent months")
             _cash_flow_chart(summary)
             st.caption(f'Net cash flow this month: {rupees(o["net"])}')
     with budget_col:
-        with st.container(border=True, key="dk-budget-card", height="stretch"):
+        with st.container(border=True, key="dk-budget-card"):
             section_header("Room to spend", "Your monthly budget")
             st.metric("Budget left", rupees(o["budget_remaining"]) if o["budget_limit"] else "Not set")
             if o["budget_limit"]:
+                _budget_donut(o["expenses"], o["budget_limit"])
                 used = o["expenses"] / o["budget_limit"]
-                st.progress(min(1.0, max(0.0, used)))
                 st.caption(f'{used:.0%} used · {rupees(o["expenses"])} of {rupees(o["budget_limit"])}')
             else:
                 st.caption("Set a monthly limit to see your spending room.")
             st.html(f'<div class="f-pulse"><strong>Financial pulse · {escape(o["pulse"])}</strong><p>{escape(o["pulse_detail"])}</p></div>')
             st.button("Review budgets", icon=":material/arrow_forward:", key="overview-budgets", on_click=_navigate, args=("Budgets",))
 
-    category_col, activity_col = st.columns([1, 1.65], gap="medium")
+    category_col, activity_col = st.columns([1.28, .72], gap="medium")
     with category_col:
-        with st.container(border=True, key="dk-category-card", height="stretch"):
+        with st.container(border=True, key="dk-category-card"):
             section_header("Where it went", "Spending by category")
             categories = an.category_summary(store, month)
             if categories.empty:
                 st.caption("Record an expense to see your category breakdown.")
             else:
-                plot = alt.Chart(categories).mark_bar(cornerRadiusEnd=4, size=14, color=POSITIVE).encode(
-                    y=alt.Y("category:N", sort="-x", title=None, axis=alt.Axis(domain=False, ticks=False, labelLimit=110)),
+                plot = alt.Chart(categories).mark_bar(cornerRadiusEnd=4, size=13, color=POSITIVE).encode(
+                    y=alt.Y("category:N", sort="-x", title=None, axis=alt.Axis(domain=False, ticks=False, labelLimit=115)),
                     x=alt.X("amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
                     tooltip=[alt.Tooltip("category:N", title="Category"), alt.Tooltip("amount:Q", title="Amount (₹)", format=",.0f")],
-                ).properties(height=250).configure_view(stroke=None)
+                ).properties(height=185).configure_view(stroke=None)
                 st.altair_chart(plot, width="stretch", alt="Recorded spending by category in the selected month")
+            st.divider()
+            _spending_comparison(store)
     with activity_col:
-        with st.container(border=True, key="dk-activity-card", height="stretch"):
-            section_header("Latest activity", "Your most recent money moves")
+        with st.container(border=True, key="dk-activity-card"):
+            section_header("Latest activity", "Recent money moves")
             recent = an.transactions_frame(store)
             if recent.empty:
                 st.info("Your first transaction starts the story. Add one above.")
             else:
-                rows(recent, limit=5)
-            st.button("View all transactions", key="overview-history", on_click=_navigate, args=("Transactions", "History"))
+                rows(recent, limit=4)
+            st.button("View all", icon=":material/arrow_forward:", key="overview-history", on_click=_navigate, args=("Transactions", "History"))
 
     upcoming = an.timeline(store, views.today() - timedelta(days=30), views.today() + timedelta(days=14))
     upcoming = upcoming.loc[upcoming.status.ne("Recorded")]
@@ -159,12 +313,13 @@ def overview_page():
                     st.caption(str(item["date"]))
         st.button("Open calendar", key="overview-calendar", on_click=_navigate, args=("Calendar",))
     with st.expander("The bigger picture · savings, subscriptions & debt"):
-        metrics([("Subscriptions / month", rupees(sub["monthly_cost"]), "Monthly equivalent of active subscriptions."),
-                 ("Debt remaining", rupees(o["debt"]), "Recorded liabilities."),
-                 ("Cash saved", rupees(o["net"]), "This month's income minus spending.")])
+        metrics([
+            ("Subscriptions / month", rupees(sub["monthly_cost"]), "Monthly equivalent of active subscriptions."),
+            ("Debt remaining", rupees(o["debt"]), "Recorded liabilities."),
+            ("Cash saved", rupees(o["net"]), "This month's income minus spending."),
+        ])
         for goal in an.goal_summary(store).to_dict("records"):
             progress_card(goal["name"], goal["saved"], goal["target"], str(goal["target_date"]))
-
 
 
 def transactions_page():
@@ -209,7 +364,11 @@ def transactions_page():
 
     income = float(frame.loc[frame.kind.eq("income"), "amount"].sum()) if not frame.empty else 0.0
     expense = float(frame.loc[frame.kind.eq("expense"), "amount"].sum()) if not frame.empty else 0.0
-    metrics([("Rows", str(len(frame)), "Filtered ledger rows."), ("Income", rupees(income), "Visible income."), ("Spending", rupees(expense), "Visible expenses.")])
+    metrics([
+        ("Rows", str(len(frame)), "Filtered ledger rows."),
+        ("Income", rupees(income), "Visible income."),
+        ("Spending", rupees(expense), "Visible expenses."),
+    ])
 
     with st.container(border=True, key="dk-ledger-card"):
         if frame.empty:
