@@ -1,7 +1,7 @@
 """Pandas prepares tables; NumPy supplies vectorized financial arithmetic.
 
 All public monetary results are rupees. Database values remain integer paise.
-Forecasts describe arithmetic assumptions, never AI or investment advice.
+Forecasts describe arithmetic assumptions and are not investment advice.
 """
 from datetime import date, timedelta
 import calendar
@@ -249,4 +249,3 @@ def monthly_review(store,month):
         insights.append("Add another month of transactions to unlock comparisons.")
     result["insights"] = insights
     return result
-
