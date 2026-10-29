@@ -24,6 +24,7 @@ import calendar_view
 import views
 import premium_views
 import premium_analytics
+import account_workspace
 import data_settings
 import about
 import web_shell
@@ -101,7 +102,7 @@ routes = {
     "Overview": premium_views.overview_page,
     "Transactions": premium_views.transactions_page,
     "Budgets": premium_views.budgets_page,
-    "Accounts": views.accounts_page,
+    "Accounts": account_workspace.accounts_page,
     "Bills & subscriptions": views.commitments_page,
     "Goals & debt": views.goals_page,
     "Cash flow & insights": premium_analytics.analytics_page,
