@@ -22,6 +22,7 @@ import statement_workspace
 import calendar_view
 import views
 import premium_views
+import premium_analytics
 import data_settings
 import about
 
@@ -41,7 +42,6 @@ def _apply_report_date():
         st.session_state.report_date_widget = selected
     st.session_state.report_date = selected
     st.session_state.report_month = selected.strftime("%Y-%m")
-    # Keep Calendar centered on the newly selected historical date.
     st.session_state.calendar_timeline_from = selected - timedelta(days=7)
     st.session_state.calendar_timeline_through = selected + timedelta(days=45)
 
@@ -74,7 +74,6 @@ if "store" not in st.session_state:
     directory = tempfile.TemporaryDirectory(prefix="fyntra-demo-")
     demo_store = Store(Path(directory.name) / "finance.db")
     seed_demo(demo_store)
-    # Publish only a complete store: browser component events can interrupt a rerun.
     st.session_state.demo_directory = directory
     st.session_state.store = demo_store
 
@@ -87,21 +86,18 @@ routes = {
     "Accounts": views.accounts_page,
     "Bills & subscriptions": views.commitments_page,
     "Goals & debt": views.goals_page,
-    "Cash flow & insights": views.analytics_page,
+    "Cash flow & insights": premium_analytics.analytics_page,
     "Calendar": calendar_view.calendar_page,
     "Data & settings": data_settings.data_page,
 }
 if st.session_state.mode != "demo":
     routes["Bank statements"] = statement_workspace.statement_page
-# Keep project information at the bottom of the workspace navigation.
 routes["About FYNTRA"] = about.about_page
 
 with st.sidebar:
     brand()
     st.caption("Know where your money goes. Decide where it goes next.")
     sidebar_status(st.session_state.mode)
-    # Keep the stored option values exactly equal to route names. Styling supplies the
-    # visual polish without transforming values that tests and callbacks depend on.
     page = st.radio("Workspace", list(routes), label_visibility="collapsed")
 
     st.divider()
@@ -123,7 +119,6 @@ with st.sidebar:
         format="DD/MM/YYYY",
         help="Use any date from 2 Dec 2002 through today to inspect your finances as they stood on that day.",
     )
-    # First run has no callback, so keep derived state initialized explicitly.
     if "report_month" not in st.session_state:
         _apply_report_date()
     st.caption(f'Viewing through {st.session_state.report_date:%d %b %Y}')
@@ -191,9 +186,6 @@ if page not in scope_exempt and imported:
         st.session_state.get("statement_scope_id"),
     )
 
-# Existing analytics and views use a shared today() helper. During page rendering,
-# point those read calculations at the selected report date so historical views are
-# consistent across balances, charts, timelines and monthly summaries.
 report_cutoff = st.session_state.report_date
 original_analytics_today = analytics_module.today
 original_views_today = views.today
