@@ -1,16 +1,16 @@
-# FYNTRA / Clarity redesign
+# FYNTRA local setup
 
-## Open in VS Code
+## Windows quick start
 
-1. Extract the full ZIP to a writable folder.
-2. Install Python 3.12 or 3.13. Enable the Python launcher or add Python to PATH.
-3. Double-click `START_FYNTRA.cmd`. The first run installs the pinned dependencies and requires internet.
-4. Open http://localhost:8501. The fictional demo needs no credentials.
-5. Open `FYNTRA.code-workspace` in VS Code. Select `.venv/Scripts/python.exe` with **Python: Select Interpreter**; press F5 to debug. Stop the standalone launcher first so it does not occupy the same port.
+1. Install Python 3.12 or 3.13. Enable the Python launcher or add Python to PATH.
+2. Clone or download this repository to a writable folder.
+3. Double-click `START_FYNTRA.cmd`. The first run creates `.venv` and installs the pinned dependencies.
+4. Open `http://localhost:8501`. The fictional demo needs no credentials.
+5. For development, open `FYNTRA.code-workspace` in VS Code and select `.venv/Scripts/python.exe` as the interpreter.
 
-`DIAGNOSE_FYNTRA.cmd` writes an environment report to `logs/diagnostics.txt`. The local launcher does not publish changes to your live website.
+`DIAGNOSE_FYNTRA.cmd` runs the project diagnostics. The local launcher does not publish changes to the hosted Streamlit app.
 
-## Terminal
+## Terminal commands
 
 ```powershell
 py -3.13 tools/manage.py setup
@@ -19,16 +19,14 @@ py -3.13 tools/manage.py setup
 .venv\Scripts\python.exe tools/manage.py test
 ```
 
-Use `py -3.12` for Python 3.12. On macOS/Linux use `python3 tools/manage.py setup`, then `.venv/bin/python` for the remaining commands. Windows was tested; macOS/Linux were not directly tested.
+Use `py -3.12` for Python 3.12. On macOS/Linux, use `python3 tools/manage.py setup`, then `.venv/bin/python` for the remaining commands.
 
-No virtual-environment activation or PowerShell policy change is needed. If port 8501 is occupied, use `tools/manage.py run --port 8502`. If a restricted coding environment cannot write temporary files, ask that environment to provide a writable TEMP/TMP location within its allowed workspace.
+If port 8501 is occupied, run `tools/manage.py run --port 8502`.
 
-## Your data
+## Private workspace
 
-Public demo changes are temporary: export a FYNTRA Bundle before closing the session to keep them. Private mode requires your own Supabase URL and publishable key using `.streamlit/secrets.toml.example`. Never use a service-role key. No private records, real statements or credentials are included in this package.
+The public demo uses fictional session data. Private mode requires a Supabase URL and publishable key using `.streamlit/secrets.toml.example`. Never use a service-role key.
 
-## Continue with another AI
+No private records, real bank statements, passwords or credentials are included in this repository.
 
-Read `AI_START_HERE.md` and give the assistant access to this extracted folder. The application is ordinary editable Python; it needs no AI subscription or API key. Each assistant still uses its own file permissions and tools.
-
-See `docs/REDESIGN.md` for the design decisions and verification evidence. Source history is available in https://github.com/prakhargoyal02/FYNTRA.
+For deployment and security details, see `docs/DEPLOYMENT.md` and `docs/SECURITY.md`.
