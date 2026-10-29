@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520" role="img" aria-label="FYNTRA personal finance workspace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07100d"/>
+      <stop offset="0.55" stop-color="#0b1712"/>
+      <stop offset="1" stop-color="#08110e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#79e6b0" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#79e6b0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#63c894"/>
+      <stop offset="0.55" stop-color="#b5f3cf"/>
+      <stop offset="1" stop-color="#74d8aa"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#b5f3cf" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="tinyGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="520" rx="28" fill="url(#bg)"/>
+  <rect width="1400" height="520" rx="28" fill="url(#grid)"/>
+  <circle cx="1110" cy="210" r="250" fill="url(#glow)" filter="url(#soft)">
+    <animate attributeName="r" values="225;270;225" dur="8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.65;1;0.65" dur="8s" repeatCount="indefinite"/>
+  </circle>
+
+  <g transform="translate(70 62)">
+    <rect x="0" y="0" width="68" height="68" rx="20" fill="#13261e" stroke="#3d765c"/>
+    <path d="M14 44V29a16 16 0 0 1 16-16h25L42 26H31a4 4 0 0 0-4 4v14L14 57Z" fill="#b5f3cf"/>
+    <path d="M32 35h20L40 48H19l13-13Z" fill="#6dc7a0"/>
+  </g>
+
+  <g font-family="Inter,Segoe UI,Arial,sans-serif">
+    <text x="160" y="104" fill="#f3f3e9" font-size="34" font-weight="700" letter-spacing="7">FYNTRA</text>
+    <text x="70" y="210" fill="#f3f3e9" font-size="54" font-weight="650" letter-spacing="-1.5">Know where your money goes.</text>
+    <text x="70" y="276" fill="#b5f3cf" font-size="54" font-weight="650" letter-spacing="-1.5">Decide where it goes next.</text>
+    <text x="72" y="334" fill="#93a99f" font-size="17" letter-spacing="1.8">PERSONAL FINANCE · CLEAR LEDGERS · USEFUL DECISIONS</text>
+  </g>
+
+  <g transform="translate(72 382)" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15">
+    <g><rect width="138" height="42" rx="21" fill="#13261e" stroke="#315d49"/><text x="69" y="27" text-anchor="middle" fill="#dff8e9">Python + Pandas</text></g>
+    <g transform="translate(152)"><rect width="122" height="42" rx="21" fill="#13261e" stroke="#315d49"/><text x="61" y="27" text-anchor="middle" fill="#dff8e9">SQLite ledger</text></g>
+    <g transform="translate(288)"><rect width="128" height="42" rx="21" fill="#13261e" stroke="#315d49"/><text x="64" y="27" text-anchor="middle" fill="#dff8e9">Streamlit UI</text></g>
+    <g transform="translate(430)"><rect width="144" height="42" rx="21" fill="#13261e" stroke="#315d49"/><text x="72" y="27" text-anchor="middle" fill="#dff8e9">Supabase private</text></g>
+  </g>
+
+  <g transform="translate(880 78)">
+    <rect width="420" height="340" rx="24" fill="#0d1915" stroke="#2a493b"/>
+    <rect x="28" y="28" width="112" height="12" rx="6" fill="#223c31"/>
+    <rect x="28" y="54" width="196" height="8" rx="4" fill="#173027"/>
+    <g transform="translate(28 104)">
+      <rect width="112" height="70" rx="14" fill="#12251d" stroke="#294b3a"/>
+      <rect x="126" width="112" height="70" rx="14" fill="#12251d" stroke="#294b3a"/>
+      <rect x="252" width="112" height="70" rx="14" fill="#12251d" stroke="#294b3a"/>
+      <rect x="14" y="15" width="42" height="7" rx="3.5" fill="#315d49"/>
+      <rect x="14" y="36" width="70" height="11" rx="5.5" fill="#b5f3cf"/>
+      <rect x="140" y="15" width="42" height="7" rx="3.5" fill="#315d49"/>
+      <rect x="140" y="36" width="58" height="11" rx="5.5" fill="#f2cf8d"/>
+      <rect x="266" y="15" width="42" height="7" rx="3.5" fill="#315d49"/>
+      <rect x="266" y="36" width="64" height="11" rx="5.5" fill="#8ee3ba"/>
+    </g>
+    <path d="M40 275 C85 245 108 288 150 252 S221 207 262 226 S330 176 382 188" fill="none" stroke="url(#line)" stroke-width="5" stroke-linecap="round" stroke-dasharray="520" stroke-dashoffset="520" filter="url(#tinyGlow)">
+      <animate attributeName="stroke-dashoffset" values="520;0;0" keyTimes="0;0.55;1" dur="5.8s" repeatCount="indefinite"/>
+    </path>
+    <g fill="#b5f3cf" filter="url(#tinyGlow)">
+      <circle cx="150" cy="252" r="5"><animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/></circle>
+      <circle cx="262" cy="226" r="5"><animate attributeName="r" values="4;7;4" dur="2.5s" begin="0.8s" repeatCount="indefinite"/></circle>
+      <circle cx="382" cy="188" r="5"><animate attributeName="r" values="4;7;4" dur="2.5s" begin="1.6s" repeatCount="indefinite"/></circle>
+    </g>
+    <rect x="28" y="306" width="84" height="7" rx="3.5" fill="#244438"/>
+    <rect x="126" y="306" width="122" height="7" rx="3.5" fill="#183228"/>
+  </g>
+
+  <g opacity="0.72">
+    <circle cx="1270" cy="455" r="3" fill="#b5f3cf"><animate attributeName="opacity" values="0.2;1;0.2" dur="3s" repeatCount="indefinite"/></circle>
+    <circle cx="1322" cy="430" r="2.5" fill="#6dc7a0"><animate attributeName="opacity" values="1;0.2;1" dur="4s" repeatCount="indefinite"/></circle>
+    <circle cx="1220" cy="474" r="2" fill="#f2cf8d"><animate attributeName="opacity" values="0.25;1;0.25" dur="5s" repeatCount="indefinite"/></circle>
+  </g>
+</svg>
