@@ -1,9 +1,4 @@
-"""Premium presentation compositions built on the existing FYNTRA domain functions.
-
-This module deliberately contains no database rules. It reads the same analytics and
-calls the same reusable actions as views.py, but gives the primary experience a more
-editorial visual hierarchy.
-"""
+"""Reference-driven presentation compositions over existing FYNTRA domain functions."""
 from datetime import timedelta
 
 import altair as alt
@@ -13,7 +8,19 @@ import streamlit as st
 import analytics as an
 import views
 from database import money
-from ui import ACCENT, NEGATIVE, POSITIVE, chart, hero, insight_panel, metrics, progress_card, rows, rupees, section_header
+from modern_ui import (
+    ACCENT,
+    NEGATIVE,
+    POSITIVE,
+    chart,
+    hero,
+    insight_panel,
+    metrics,
+    progress_card,
+    rows,
+    rupees,
+    section_header,
+)
 
 
 def _month():
@@ -31,92 +38,115 @@ def _cash_flow_chart(summary):
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, opacity=.88)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, opacity=.92)
         .encode(
-            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelColor="#87938E")),
+            x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelColor="#69716E")),
             xOffset="Flow:N",
-            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#1E2724", tickColor="#29332F", labelColor="#87938E")),
+            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#D9DAD5", tickColor="#C9CBC6", labelColor="#69716E")),
             color=alt.Color(
                 "Flow:N",
                 scale=alt.Scale(domain=["income", "expenses"], range=[POSITIVE, NEGATIVE]),
-                legend=alt.Legend(orient="bottom", title=None, labelColor="#8F9B96", padding=10),
+                legend=alt.Legend(orient="bottom", title=None, labelColor="#69716E", padding=10),
             ),
             tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("Flow:N"), alt.Tooltip("Amount:Q", format=",.0f")],
         )
-        .properties(height=330)
+        .properties(height=320)
         .configure_view(stroke=None)
     )
     st.altair_chart(flow, width="stretch", alt="Income and expenses over recent months")
 
 
 def overview_page():
-    """Financial story first: position, movement, spending, activity and what is next."""
+    """Bento-style financial story built from the existing analytics functions."""
     month = _month()
     store = _store()
     o = an.overview(store, month)
     period = pd.Period(month).strftime("%B %Y")
+    sub = an.subscription_summary(store)
 
     hero(
-        "Your money, without the noise.",
-        "A single view of what changed, what remains, and what deserves your attention next.",
+        "See your money as one system.",
+        "Position, movement, pressure and what comes next, arranged like a product workspace instead of a dashboard template.",
         f"{period.upper()} / OVERVIEW",
     )
 
-    balance_col, pulse_col = st.columns([1.6, .72], gap="large", vertical_alignment="bottom")
+    balance_col, side_col = st.columns([1.55, .85], gap="medium")
     with balance_col:
-        with st.container(key="fyntra-overview-balance"):
+        with st.container(border=True, key="bento-balance"):
+            st.caption("AVAILABLE CASH")
             st.metric(
                 "Available cash",
                 rupees(o["balance"]),
+                label_visibility="collapsed",
                 help="Current non-investment, non-card account balances through the selected report date.",
             )
-            st.caption("Liquid position across the accounts currently in this data view.")
-    with pulse_col:
-        insight_panel(o["pulse"], o["pulse_detail"])
+            bottom_left, bottom_right = st.columns(2, gap="medium")
+            bottom_left.metric("Net this month", rupees(o["net"]), help="Income minus expenses this month.")
+            bottom_right.metric("Net worth", rupees(o["net_worth"]), help="Assets minus negative balances and standalone debts.")
+            st.caption("Liquid position across the accounts currently included in this data view.")
 
-    metrics([
-        ("Money in", rupees(o["income"]), "Recorded income this report month."),
-        ("Money out", rupees(o["expenses"]), "Recorded expenses; transfers excluded."),
-        ("Budget left", rupees(o["budget_remaining"]), "Monthly spending limit minus expenses."),
-        ("Savings rate", f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—", "Net cash flow divided by income."),
-    ])
+    with side_col:
+        with st.container(border=True, key="bento-month"):
+            st.caption(period.upper())
+            left, right = st.columns(2)
+            left.metric("Money in", rupees(o["income"]), help="Recorded income this report month.")
+            right.metric("Money out", rupees(o["expenses"]), help="Recorded expenses; transfers excluded.")
+            st.metric(
+                "Savings rate",
+                f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—",
+                help="Net cash flow divided by income.",
+            )
+        with st.container(border=True, key="bento-pulse"):
+            insight_panel(o["pulse"], o["pulse_detail"])
 
-    section_header("Money in motion", "Six recent months, stripped back to the movement that matters.")
-    _cash_flow_chart(an.monthly_summary(store).tail(6))
+    motion_col, budget_col = st.columns([1.55, .85], gap="medium")
+    with motion_col:
+        with st.container(border=True, key="bento-motion"):
+            section_header("Money in motion", "Six recent months, with income and spending shown together.")
+            _cash_flow_chart(an.monthly_summary(store).tail(6))
+    with budget_col:
+        with st.container(border=True, key="bento-budget"):
+            section_header("Budget room", "How much of the monthly plan remains.")
+            st.metric("Budget left", rupees(o["budget_remaining"]), help="Monthly spending limit minus expenses.")
+            metrics([
+                ("Limit", rupees(o["budget_limit"]), "Monthly category-budget total or profile limit."),
+                ("Spent", rupees(o["expenses"]), "Recorded expenses this month."),
+            ])
 
-    spend_col, position_col = st.columns([1.55, .85], gap="large")
+    spend_col, position_col, activity_col = st.columns([1.15, .8, 1.05], gap="medium")
     with spend_col:
-        section_header("Where spending went", "Category totals for the selected report month.")
-        chart(an.category_summary(store, month), "category:N", "amount:Q", color=ACCENT, height=285, title="Spending by category")
+        with st.container(border=True, key="bento-spending"):
+            section_header("Where it went", "Selected-month spending by category.")
+            chart(an.category_summary(store, month), "category:N", "amount:Q", color=NEGATIVE, height=275, title="Spending by category")
     with position_col:
-        section_header("Position", "A compact read on wealth, cash creation and recurring commitments.")
-        sub = an.subscription_summary(store)
-        metrics([
-            ("Net worth", rupees(o["net_worth"]), "Assets minus negative balances and standalone debts."),
-            ("Cash saved", rupees(o["net"]), "Income minus expenses for the report month."),
-            ("Subscriptions", rupees(sub["monthly_cost"]), "Monthly equivalent of active subscriptions."),
-        ])
-
-    activity_col, horizon_col = st.columns([1.45, .8], gap="large")
+        with st.container(border=True, key="bento-position"):
+            section_header("Position", "A compact read on recurring pressure and retained cash.")
+            st.metric("Cash saved", rupees(o["net"]), help="Income minus expenses for the report month.")
+            st.metric("Subscriptions", rupees(sub["monthly_cost"]), help="Monthly equivalent of active subscriptions.")
+            st.metric("Debt", rupees(o["debt"]), help="Recorded liabilities through the report date.")
     with activity_col:
-        section_header("Latest activity", "The newest recorded movements in this data view.")
-        recent = an.transactions_frame(store)
-        if recent.empty:
-            st.info("Add your first transaction to see activity here.")
-        else:
-            rows(recent, limit=7)
-    with horizon_col:
-        section_header("On the horizon", "Recorded commitments approaching the selected report date.")
+        with st.container(border=True, key="bento-activity"):
+            section_header("Latest activity", "Newest recorded movements in this data view.")
+            recent = an.transactions_frame(store)
+            if recent.empty:
+                st.info("Add your first transaction to see activity here.")
+            else:
+                rows(recent, limit=6)
+
+    with st.container(border=True, key="bento-horizon"):
+        section_header("On the horizon", "Upcoming commitments around the selected report date.")
         upcoming = an.timeline(store, views.today() - timedelta(days=30), views.today() + timedelta(days=14))
         upcoming = upcoming.loc[upcoming.status.ne("Recorded")]
         if upcoming.empty:
             st.caption("No upcoming recorded commitments.")
         else:
-            for item in upcoming.head(5).to_dict("records"):
-                with st.container(border=True):
+            horizon_cols = st.columns(min(4, len(upcoming.head(4))), gap="medium")
+            for column, item in zip(horizon_cols, upcoming.head(4).to_dict("records")):
+                with column:
+                    st.caption(item["status"].upper())
                     st.write(f'**{item["name"]}**')
                     st.metric("Amount", rupees(item["amount"]), label_visibility="collapsed")
-                    st.caption(f'{item["date"]} · {item["status"]}')
+                    st.caption(str(item["date"]))
 
     goals = an.goal_summary(store)
     if not goals.empty or o["debt"]:
@@ -127,7 +157,7 @@ def overview_page():
 
 
 def transactions_page():
-    """Keep transaction CRUD intact while presenting the ledger as a readable stream."""
+    """Transaction CRUD preserved inside a two-column product workspace."""
     hero(
         "Every move, accounted for.",
         "Search the ledger, record a movement, or manage predictable recurring entries.",
@@ -142,7 +172,12 @@ def transactions_page():
         return
 
     frame = an.transactions_frame(_store(), posted=False)
-    search = st.text_input("Search transactions", placeholder="Merchant, note, category, tag or amount")
+    search_col, filter_col = st.columns([1.55, .45], gap="medium", vertical_alignment="bottom")
+    with search_col:
+        search = st.text_input("Search transactions", placeholder="Merchant, note, category, tag or amount")
+    with filter_col:
+        order = st.selectbox("Sort", ["Newest", "Oldest", "Largest", "Smallest"])
+
     if search:
         text = frame[["merchant", "notes", "category", "tags", "amount"]].astype(str).agg(" ".join, axis=1)
         frame = frame.loc[text.str.contains(search, case=False, regex=False)]
@@ -170,29 +205,43 @@ def transactions_page():
     if tag:
         frame = frame.loc[frame.tags.fillna("").str.contains(tag, case=False, regex=False)]
 
-    sort_col, summary_col = st.columns([.78, 1.22], gap="large", vertical_alignment="bottom")
-    with sort_col:
-        order = st.selectbox("Sort by", ["Newest", "Oldest", "Largest", "Smallest"])
     frame = frame.sort_values(
         "date" if order in {"Newest", "Oldest"} else "amount",
         ascending=order in {"Oldest", "Smallest"},
     )
-    with summary_col:
-        visible_income = float(frame.loc[frame.kind.eq("income"), "amount"].sum()) if not frame.empty else 0.0
-        visible_expense = float(frame.loc[frame.kind.eq("expense"), "amount"].sum()) if not frame.empty else 0.0
-        metrics([
-            ("Visible rows", str(len(frame)), "Transactions after the current search and filters."),
-            ("Income", rupees(visible_income), "Income inside the filtered result."),
-            ("Spending", rupees(visible_expense), "Expenses inside the filtered result."),
-        ])
+    visible_income = float(frame.loc[frame.kind.eq("income"), "amount"].sum()) if not frame.empty else 0.0
+    visible_expense = float(frame.loc[frame.kind.eq("expense"), "amount"].sum()) if not frame.empty else 0.0
 
-    section_header("Ledger", "Future entries remain planned and do not affect current balances.")
-    if frame.empty:
-        st.info("No transactions match these filters.")
-    else:
-        rows(frame, limit=20)
-        if len(frame) > 20:
-            st.caption(f"Showing the first 20 of {len(frame)} filtered transactions. Open Detailed ledger for every row.")
+    ledger_col, summary_col = st.columns([1.55, .65], gap="medium")
+    with ledger_col:
+        with st.container(border=True, key="transaction-ledger"):
+            section_header("Ledger", "Future entries stay planned and do not affect current balances.")
+            if frame.empty:
+                st.info("No transactions match these filters.")
+            else:
+                rows(frame, limit=24)
+                if len(frame) > 24:
+                    st.caption(f"Showing 24 of {len(frame)} filtered transactions. Detailed ledger contains every row.")
+
+    with summary_col:
+        with st.container(border=True, key="transaction-summary"):
+            section_header("Selection snapshot", "Live totals for what you are looking at.")
+            st.metric("Visible rows", str(len(frame)))
+            st.metric("Income", rupees(visible_income))
+            st.metric("Spending", rupees(visible_expense))
+
+            if not frame.empty:
+                labels = {
+                    row.id: f'{row.date:%d %b} · {row.merchant or row.category} · {rupees(row.amount)}'
+                    for row in frame.itertuples()
+                }
+                selected = st.selectbox(
+                    "Edit a transaction",
+                    [None] + list(labels),
+                    format_func=lambda value: "Choose a transaction" if value is None else labels[value],
+                )
+                if selected:
+                    views.transaction_form(_store().get("transactions", selected))
 
     with st.expander("Detailed ledger"):
         shown = frame[["date", "merchant", "kind", "category", "account_name", "amount", "tags"]].copy()
@@ -200,72 +249,65 @@ def transactions_page():
         shown["amount"] = shown.amount.map(lambda value: rupees(value, True))
         views.table(shown)
 
-    if not frame.empty:
-        labels = {
-            row.id: f'{row.date:%d %b} · {row.merchant or row.category} · {rupees(row.amount)} · {str(row.id)[:6]}'
-            for row in frame.itertuples()
-        }
-        selected = st.selectbox(
-            "Select a transaction to edit",
-            [None] + list(labels),
-            format_func=lambda value: "Choose a transaction" if value is None else labels[value],
-        )
-        if selected:
-            views.transaction_form(_store().get("transactions", selected))
-
     with st.expander("Monthly category and daily totals"):
         views.table(an.category_summary(_store(), _month()))
         views.table(an.daily_spending(_store(), _month()))
 
 
 def budgets_page():
-    """Show budget pressure as a scan-friendly progression instead of stacked cards."""
+    """Budget information arranged as an asymmetric planning workspace."""
     month = _month()
     store = _store()
     budget = an.budget_summary(store, month)
     overview = an.overview(store, month)
     hero(
-        "Give your money direction.",
-        "See the room left in every category before the month decides for you.",
+        "Give every rupee a little room.",
+        "See how the plan is holding up, then test a purchase before it becomes a transaction.",
         f"BUDGETS / {month}",
     )
-    metrics([
-        ("Monthly limit", rupees(overview["budget_limit"]), "Profile limit, or the sum of category budgets."),
-        ("Spent", rupees(overview["expenses"]), "All expenses, including unbudgeted categories."),
-        ("Remaining", rupees(overview["budget_remaining"]), "Limit minus recorded spending."),
-    ])
 
-    section_header("Category pressure", "Progress is calm when healthy and becomes more important as a limit approaches.")
-    if budget.empty:
-        st.info("Create a category budget to see utilization here.")
-    else:
-        for item in budget.to_dict("records"):
-            progress_card(
-                item["category"],
-                item["spent"],
-                item["limit"],
-                f'{rupees(item["remaining"])} remaining · {item["used_pct"]:.0f}% used · {item["status"]}',
+    summary_col, planner_col = st.columns([1.25, .75], gap="medium")
+    with summary_col:
+        with st.container(border=True, key="budget-summary"):
+            st.caption("MONTHLY BUDGET POSITION")
+            st.metric("Remaining", rupees(overview["budget_remaining"]), help="Limit minus recorded spending.")
+            left, right = st.columns(2)
+            left.metric("Monthly limit", rupees(overview["budget_limit"]), help="Profile limit, or the sum of category budgets.")
+            right.metric("Spent", rupees(overview["expenses"]), help="All expenses, including unbudgeted categories.")
+    with planner_col:
+        with st.container(border=True, key="budget-planner"):
+            section_header("Can it fit?", "Test a purchase against the remaining monthly budget.")
+            spend = st.number_input("Planned purchase (₹)", min_value=0.0, value=1000.0, step=100.0)
+            st.metric("Left after purchase", rupees(overview["budget_remaining"] - spend))
+            st.caption("Arithmetic against your plan, not lending or investment advice.")
+
+    with st.container(border=True, key="budget-pressure"):
+        section_header("Category pressure", "Scan the categories that are consuming the plan fastest.")
+        if budget.empty:
+            st.info("Create a category budget to see utilization here.")
+        else:
+            budget_columns = st.columns(2, gap="large")
+            for index, item in enumerate(budget.to_dict("records")):
+                with budget_columns[index % 2]:
+                    progress_card(
+                        item["category"],
+                        item["spent"],
+                        item["limit"],
+                        f'{rupees(item["remaining"])} remaining · {item["used_pct"]:.0f}% used · {item["status"]}',
+                    )
+        st.caption("Healthy ≤60% · Watch >60–85% · Near limit >85–100% · Over budget >100%.")
+
+    with st.expander("Create or edit a budget", expanded=budget.empty):
+        row = views.picker("budgets", name="category")
+        with st.form("budget"):
+            budget_month = st.text_input("Budget month (YYYY-MM)", row.get("month", month))
+            category = st.text_input("Budget category", row.get("category", "Food"))
+            limit = st.number_input(
+                "Category limit (₹)",
+                min_value=0.0,
+                value=float(row.get("limit_paise", 500000) / 100),
             )
-    st.caption("Healthy ≤60% · Watch >60–85% · Near limit >85–100% · Over budget >100%.")
-
-    edit_col, fit_col = st.columns([1.12, .88], gap="large")
-    with edit_col:
-        with st.expander("Create or edit a budget", expanded=budget.empty):
-            row = views.picker("budgets", name="category")
-            with st.form("budget"):
-                budget_month = st.text_input("Budget month (YYYY-MM)", row.get("month", month))
-                category = st.text_input("Budget category", row.get("category", "Food"))
-                limit = st.number_input(
-                    "Category limit (₹)",
-                    min_value=0.0,
-                    value=float(row.get("limit_paise", 500000) / 100),
-                )
-                submitted = st.form_submit_button("Save budget", type="primary")
-            if submitted:
-                views.save("budgets", row, dict(month=budget_month, category=category, limit_paise=money(limit)))
-            views.deletion("budgets", row)
-    with fit_col:
-        section_header("Can it fit?", "A quick affordability check against the remaining monthly budget.")
-        spend = st.number_input("Planned purchase (₹)", min_value=0.0, value=1000.0, step=100.0)
-        st.metric("Budget left after purchase", rupees(overview["budget_remaining"] - spend))
-        st.caption("This is arithmetic against your budget, not lending or investment advice.")
+            submitted = st.form_submit_button("Save budget", type="primary")
+        if submitted:
+            views.save("budgets", row, dict(month=budget_month, category=category, limit_paise=money(limit)))
+        views.deletion("budgets", row)
