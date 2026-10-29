@@ -57,9 +57,9 @@ def test_all_screens_and_transaction_crud():
     assert not app.exception
     nav=app.sidebar.radio[0]
     for page in nav.options:
-        nav.set_value(page).run()
+        app.sidebar.radio[0].set_value(page).run()
         assert not app.exception, (page,[e.message for e in app.exception])
-    nav.set_value('Transactions').run()
+    app.sidebar.radio[0].set_value('Transactions').run()
     app.segmented_control[0].set_value('Add transaction').run()
     assert not app.exception
     next(w for w in app.text_input if w.label=='Merchant / source').set_value('QA merchant')
@@ -92,3 +92,18 @@ def test_secondary_views_and_empty_workspace(tmp_path):
     for page in app.sidebar.radio[0].options:
         app.sidebar.radio[0].set_value(page).run()
         assert not app.exception, (page,[e.message for e in app.exception])
+
+
+def test_overview_shortcuts_and_visible_menu():
+    app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'),default_timeout=30).run()
+    next(b for b in app.button if b.key == 'overview-add').click().run()
+    assert app.session_state.page_nav == 'Transactions'
+    assert app.segmented_control(key='transaction_view').value == 'Add transaction'
+    assert any(w.label == 'Merchant / source' for w in app.text_input)
+    next(b for b in app.button if b.key == 'menu-nav-Overview').click().run()
+    next(b for b in app.button if b.key == 'overview-history').click().run()
+    assert app.segmented_control(key='transaction_view').value == 'History'
+    assert any(w.label == 'Search transactions' for w in app.text_input)
+    next(b for b in app.button if b.key == 'menu-nav-Calendar').click().run()
+    assert app.session_state.page_nav == 'Calendar'
+    assert not app.exception

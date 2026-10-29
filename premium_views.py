@@ -1,4 +1,4 @@
-"""DashboardKit-style finance layouts over FYNTRA's existing domain functions."""
+"""Responsive finance workspace over FYNTRA's existing domain functions."""
 from datetime import timedelta
 
 import altair as alt
@@ -36,78 +36,119 @@ def _cash_flow_chart(summary):
         .encode(
             x=alt.X("month:N", title=None, axis=alt.Axis(labelAngle=0, domain=False, ticks=False)),
             xOffset="Flow:N",
-            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#E8EAF0")),
-            color=alt.Color("Flow:N", scale=alt.Scale(domain=["income", "expenses"], range=[POSITIVE, NEGATIVE]), legend=alt.Legend(orient="bottom", title=None)),
+            y=alt.Y("Amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
+            color=alt.Color("Flow:N", scale=alt.Scale(domain=["income", "expenses"], range=[POSITIVE, "#627E73"]), legend=alt.Legend(orient="bottom", title=None)),
             tooltip=[alt.Tooltip("month:N", title="Month"), alt.Tooltip("Flow:N"), alt.Tooltip("Amount:Q", format=",.0f")],
         )
-        .properties(height=300)
+        .properties(height=260)
         .configure_view(stroke=None)
     )
     st.altair_chart(flow, width="stretch", alt="Income and expenses over recent months")
 
 
+from html import escape
+
+
+def _navigate(page, transaction_mode=None):
+    st.session_state.page_nav = page
+    if transaction_mode:
+        st.session_state.transaction_view = transaction_mode
+
+
+def _trend_bars(values, expense=False):
+    """Tiny, honestly scaled history bars; never synthetic sparkline data."""
+    values = [max(0, float(value)) for value in values]
+    maximum = max(values, default=0)
+    if not maximum:
+        return
+    bars = ''.join(f'<span style="height:{max(3, value / maximum * 100):.2f}%"></span>' for value in values)
+    st.html(f'<div class="f-mini-bars {"out" if expense else ""}" aria-hidden="true">{bars}</div>')
+
+
 def overview_page():
-    month = _month()
-    store = _store()
+    month, store = _month(), _store()
     o = an.overview(store, month)
     period = pd.Period(month).strftime("%B %Y")
+    summary = an.monthly_summary(store)
+    summary = summary.loc[summary.month.le(month)].tail(6)
     sub = an.subscription_summary(store)
 
-    _page_header("Financial overview", "A clean read on cash, movement, budget pressure and upcoming commitments.", f"{period.upper()} / OVERVIEW")
+    _page_header("Make room for what’s next.", "Your money, in perspective. A little clarity for every decision ahead.", f"{period.upper()} / YOUR FINANCIAL OVERVIEW")
+    with st.container(horizontal=True, gap="small", key="overview-actions"):
+        st.button("Add transaction", type="primary", icon=":material/add:", key="overview-add", on_click=_navigate, args=("Transactions", "Add transaction"))
+        st.button("Explore insights", icon=":material/insights:", key="overview-insights", on_click=_navigate, args=("Cash flow & insights",))
+        st.button("Manage accounts", icon=":material/account_balance_wallet:", key="overview-accounts", on_click=_navigate, args=("Accounts",))
 
-    balance_col, income_col, expense_col = st.columns([1.5, .75, .75], gap="medium")
+    balance_col, income_col, expense_col = st.columns([1.45, 1, 1], gap="medium")
     with balance_col:
-        with st.container(border=True, key="dk-balance-card"):
-            st.caption("AVAILABLE CASH")
-            st.metric("Available cash", rupees(o["balance"]), label_visibility="collapsed")
-            a, b = st.columns(2)
-            a.metric("Net worth", rupees(o["net_worth"]))
-            b.metric("Savings rate", f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—")
-    with income_col:
-        with st.container(border=True, key="dk-income-card"):
-            st.caption("MONEY IN")
-            st.metric("Money in", rupees(o["income"]), label_visibility="collapsed")
-            st.caption("Recorded income this month")
-    with expense_col:
-        with st.container(border=True, key="dk-expense-card"):
-            st.caption("MONEY OUT")
-            st.metric("Money out", rupees(o["expenses"]), label_visibility="collapsed")
-            st.caption("Transfers excluded")
+        with st.container(border=True, key="dk-balance-card", height="stretch"):
+            st.caption("YOUR AVAILABLE CASH")
+            with st.container(key="balance-main"):
+                st.metric("Available cash", rupees(o["balance"]), label_visibility="collapsed", help="Recorded cash, bank and wallet balances as of the report date.")
+            with st.container(key="balance-detail"):
+                a, b = st.columns(2)
+                a.metric("Net worth", rupees(o["net_worth"]))
+                b.metric("Savings rate", f'{o["savings_rate"]:.1f}%' if o["savings_rate"] is not None else "—")
+    for column, field, label, icon in [(income_col, "income", "Money in", "↙"), (expense_col, "expenses", "Money out", "↗")]:
+        expense = field == "expenses"
+        with column:
+            with st.container(border=True, key="dk-expense-card" if expense else "dk-income-card", height="stretch"):
+                st.html(f'<div class="f-card-eyebrow">{label}<span class="f-card-icon {"out" if expense else ""}">{icon}</span></div>')
+                st.metric(label, rupees(o[field]), label_visibility="collapsed")
+                st.caption("Spent this month · transfers excluded" if expense else "Recorded income this month")
+                if not summary.empty:
+                    _trend_bars(summary[field].tolist(), expense)
+                st.html('<p class="f-delta">Monthly history · up to six months</p>')
 
-    chart_col, side_col = st.columns([1.55, .65], gap="medium")
+    chart_col, budget_col = st.columns([1.65, 1], gap="medium")
     with chart_col:
-        with st.container(border=True, key="dk-cashflow-card"):
-            section_header("Cash flow", "Income and spending across the last six months.")
-            _cash_flow_chart(an.monthly_summary(store).tail(6))
-    with side_col:
-        with st.container(border=True, key="dk-budget-card"):
-            section_header("Budget", "Current month position.")
-            st.metric("Remaining", rupees(o["budget_remaining"]))
-            st.metric("Monthly limit", rupees(o["budget_limit"]))
-            st.metric("Subscriptions", rupees(sub["monthly_cost"]))
-            st.caption(o["pulse"])
-            st.write(o["pulse_detail"])
+        with st.container(border=True, key="dk-cashflow-card", height="stretch"):
+            section_header("Money in motion", "Income and spending · recent months")
+            _cash_flow_chart(summary)
+            st.caption(f'Net cash flow this month: {rupees(o["net"])}')
+    with budget_col:
+        with st.container(border=True, key="dk-budget-card", height="stretch"):
+            section_header("Room to spend", "Your monthly budget")
+            st.metric("Budget left", rupees(o["budget_remaining"]) if o["budget_limit"] else "Not set")
+            if o["budget_limit"]:
+                used = o["expenses"] / o["budget_limit"]
+                st.progress(min(1.0, max(0.0, used)))
+                st.caption(f'{used:.0%} used · {rupees(o["expenses"])} of {rupees(o["budget_limit"])}')
+            else:
+                st.caption("Set a monthly limit to see your spending room.")
+            st.html(f'<div class="f-pulse"><strong>Financial pulse · {escape(o["pulse"])}</strong><p>{escape(o["pulse_detail"])}</p></div>')
+            st.button("Review budgets", icon=":material/arrow_forward:", key="overview-budgets", on_click=_navigate, args=("Budgets",))
 
-    category_col, activity_col = st.columns([.85, 1.15], gap="medium")
+    category_col, activity_col = st.columns([1, 1.65], gap="medium")
     with category_col:
-        with st.container(border=True, key="dk-category-card"):
-            section_header("Spending by category", "Selected report month.")
-            chart(an.category_summary(store, month), "category:N", "amount:Q", color=NEGATIVE, height=280, title="Spending by category")
+        with st.container(border=True, key="dk-category-card", height="stretch"):
+            section_header("Where it went", "Spending by category")
+            categories = an.category_summary(store, month)
+            if categories.empty:
+                st.caption("Record an expense to see your category breakdown.")
+            else:
+                plot = alt.Chart(categories).mark_bar(cornerRadiusEnd=4, size=14, color=POSITIVE).encode(
+                    y=alt.Y("category:N", sort="-x", title=None, axis=alt.Axis(domain=False, ticks=False, labelLimit=110)),
+                    x=alt.X("amount:Q", title=None, axis=alt.Axis(format="~s", domain=False, gridColor="#273532")),
+                    tooltip=[alt.Tooltip("category:N", title="Category"), alt.Tooltip("amount:Q", title="Amount (₹)", format=",.0f")],
+                ).properties(height=250).configure_view(stroke=None)
+                st.altair_chart(plot, width="stretch", alt="Recorded spending by category in the selected month")
     with activity_col:
-        with st.container(border=True, key="dk-activity-card"):
-            section_header("Recent transactions", "Latest movements in this data view.")
+        with st.container(border=True, key="dk-activity-card", height="stretch"):
+            section_header("Latest activity", "Your most recent money moves")
             recent = an.transactions_frame(store)
             if recent.empty:
-                st.info("Add your first transaction to see activity here.")
+                st.info("Your first transaction starts the story. Add one above.")
             else:
-                rows(recent, limit=8)
+                rows(recent, limit=5)
+            st.button("View all transactions", key="overview-history", on_click=_navigate, args=("Transactions", "History"))
 
+    upcoming = an.timeline(store, views.today() - timedelta(days=30), views.today() + timedelta(days=14))
+    upcoming = upcoming.loc[upcoming.status.ne("Recorded")]
     with st.container(border=True, key="dk-horizon-card"):
-        section_header("Upcoming", "Bills, renewals and commitments around the selected report date.")
-        upcoming = an.timeline(store, views.today() - timedelta(days=30), views.today() + timedelta(days=14))
-        upcoming = upcoming.loc[upcoming.status.ne("Recorded")]
+        section_header("On the horizon", "Overdue items and the next 14 days")
         if upcoming.empty:
-            st.caption("No upcoming recorded commitments.")
+            st.caption("All clear. No recorded commitments in this window.")
         else:
             cols = st.columns(min(4, len(upcoming.head(4))), gap="medium")
             for column, item in zip(cols, upcoming.head(4).to_dict("records")):
@@ -116,18 +157,19 @@ def overview_page():
                     st.write(f'**{item["name"]}**')
                     st.metric("Amount", rupees(item["amount"]), label_visibility="collapsed")
                     st.caption(str(item["date"]))
+        st.button("Open calendar", key="overview-calendar", on_click=_navigate, args=("Calendar",))
+    with st.expander("The bigger picture · savings, subscriptions & debt"):
+        metrics([("Subscriptions / month", rupees(sub["monthly_cost"]), "Monthly equivalent of active subscriptions."),
+                 ("Debt remaining", rupees(o["debt"]), "Recorded liabilities."),
+                 ("Cash saved", rupees(o["net"]), "This month's income minus spending.")])
+        for goal in an.goal_summary(store).to_dict("records"):
+            progress_card(goal["name"], goal["saved"], goal["target"], str(goal["target_date"]))
 
-    goals = an.goal_summary(store)
-    if not goals.empty or o["debt"]:
-        with st.expander("Savings goals & debt"):
-            st.write(f'Total liabilities: **{rupees(o["debt"])}**')
-            for goal in goals.to_dict("records"):
-                progress_card(goal["name"], goal["saved"], goal["target"], str(goal["target_date"]))
 
 
 def transactions_page():
     _page_header("Transactions", "Search, filter and edit the ledger without losing context.", "LEDGER")
-    mode = st.segmented_control("View", ["History", "Add transaction", "Recurring"], default="History")
+    mode = st.segmented_control("View", ["History", "Add transaction", "Recurring"], default="History", key="transaction_view")
     if mode == "Add transaction":
         views.transaction_form()
         return

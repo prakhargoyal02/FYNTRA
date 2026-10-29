@@ -9,7 +9,6 @@ import analytics as analytics_module
 from database import Store, today as actual_today
 from demo_data import seed_demo
 from ui import style
-from taste_theme import apply_taste_layer
 import auth_ui
 import statement_tools
 import statement_formats
@@ -87,7 +86,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 style()
-apply_taste_layer()
 st.session_state.setdefault("mode", "demo")
 if "store" not in st.session_state:
     directory = tempfile.TemporaryDirectory(prefix="fyntra-demo-")
@@ -232,4 +230,4 @@ finally:
     views.today = original_views_today
     st.session_state.store = raw_store
 
-st.caption("Based on recorded data. Budgeting education, not investment or lending advice.")
+st.html('<footer class="f-footer"><strong>FYNTRA</strong><span>Know where your money goes. Decide where it goes next.</span><span>Recorded data · Budgeting education, not financial advice.</span></footer>')

@@ -1,20 +1,22 @@
 [theme]
 base = "dark"
-primaryColor = "#8CF0CB"
-backgroundColor = "#080B0A"
-secondaryBackgroundColor = "#101413"
-textColor = "#F2F4EF"
-borderColor = "#222B28"
+primaryColor = "#B5F3CF"
+backgroundColor = "#0B1010"
+secondaryBackgroundColor = "#121A19"
+textColor = "#F3F3E9"
+borderColor = "#273532"
 font = "sans-serif"
 baseRadius = "0.8rem"
-buttonRadius = "0.7rem"
-showWidgetBorder = false
-showSidebarBorder = true
-chartCategoricalColors = ["#8CF0CB", "#69D8A0", "#E2B66B", "#F08C83", "#83AAA0", "#7394A0"]
+buttonRadius = "0.6rem"
+showWidgetBorder = true
+showSidebarBorder = false
+paddingTop = "1.5rem"
+paddingBottom = "3rem"
+chartCategoricalColors = ["#B5F3CF", "#F4B4A5", "#E7C887", "#8BADA1", "#7BB8CC", "#D4DBCB"]
 
 [theme.sidebar]
-backgroundColor = "#0A0D0C"
-secondaryBackgroundColor = "#101413"
+backgroundColor = "#0B1010"
+secondaryBackgroundColor = "#121A19"
 
 [client]
 toolbarMode = "minimal"

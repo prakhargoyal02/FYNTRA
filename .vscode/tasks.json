@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "FYNTRA: setup",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "tools/manage.py",
+        "setup"
+      ],
+      "windows": {
+        "command": "cmd.exe",
+        "args": [
+          "/d",
+          "/c",
+          "FYNTRA.cmd",
+          "setup"
+        ]
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FYNTRA: run",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "tools/manage.py",
+        "run",
+        "--no-browser"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FYNTRA: tests",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "tools/manage.py",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "FYNTRA: diagnose",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "tools/manage.py",
+        "doctor"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
