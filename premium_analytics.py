@@ -57,8 +57,14 @@ def _budget_donut(spent, limit):
             .mark_text(color="#F3F3E9", fontSize=20, fontWeight=600)
             .encode(text="Label:N")
         )
+        donut = (
+            (arc + center)
+            .properties(height=170)
+            .configure(background="transparent")
+            .configure_view(stroke=None, fill="transparent")
+        )
         st.altair_chart(
-            (arc + center).properties(height=160).configure_view(stroke=None),
+            donut,
             width="stretch",
             alt="Budget used and remaining",
         )
