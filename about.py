@@ -54,7 +54,7 @@ def about_page():
 - Transfers affect account balances but are not counted as income or expenses.
 - Bills, subscriptions, debts and recurring schedules create linked ledger entries instead of unrelated duplicates.
 - Bank-statement uploads are reviewed first and do not change Transactions unless the user explicitly chooses an import action.
-- Saved statements, statement exports and ledger transactions are separate layers so deleting one does not silently erase another.
+- Saved statement analysis and imported ledger transactions remain separate so removing an import does not erase the saved statement.
         """
     )
 
@@ -72,7 +72,7 @@ def about_page():
     st.subheader("Privacy and data boundaries")
     st.write(
         "Source statement files are processed for extraction; reviewed statement rows are saved only when the user chooses to save them. "
-        "Private cloud data is ownership-protected, while exported statement snapshots stay separate from saved statements and ledger data."
+        "Private cloud data is ownership-protected, while saved statement analysis stays separate from imported ledger transactions."
     )
 
     st.markdown(
