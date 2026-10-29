@@ -243,10 +243,10 @@ def _notepad_panel():
 
 def tools_panel():
     """Render calculator and sticky notes inside the compact top-bar popover."""
-    tool = st.segmented_control(
+    tool = st.radio(
         "Utility",
         ["Calculator", "Notepad"],
-        default="Calculator",
+        horizontal=True,
         key="fyntra-utility",
         label_visibility="collapsed",
     )
