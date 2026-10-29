@@ -6,6 +6,7 @@ kept in app.py for Streamlit state/tests. Buttons only change navigation state.
 import streamlit as st
 
 import auth_ui
+import workspace_tools
 from ui import brand
 
 PRIMARY = [
@@ -20,6 +21,13 @@ def _go(page):
     st.session_state.page_nav = page
 
 
+def _account_button(mode):
+    if mode != "private":
+        return "Sign in"
+    name, _ = auth_ui.account_identity()
+    return name[:18] or "Account"
+
+
 def top_shell(
     routes,
     page,
@@ -32,9 +40,13 @@ def top_shell(
     on_ledger_change,
     on_statement_change,
 ):
-    """Render a compact website-style top shell and utility menu."""
+    """Render a compact website-style top shell and utility menus."""
     with st.container(key="fyntra-site-header"):
-        logo_col, nav_col, utility_col = st.columns([1.1, 3.9, .75], gap="medium", vertical_alignment="center")
+        logo_col, nav_col, tools_col, account_col, utility_col = st.columns(
+            [1.05, 3.35, .62, .78, .78],
+            gap="small",
+            vertical_alignment="center",
+        )
 
         with logo_col:
             brand()
@@ -53,6 +65,14 @@ def top_shell(
                         on_click=_go,
                         args=(route,),
                     )
+
+        with tools_col:
+            with st.popover("Tools", use_container_width=True):
+                workspace_tools.tools_panel()
+
+        with account_col:
+            with st.popover(_account_button(mode), use_container_width=True):
+                auth_ui.login_panel(compact=True)
 
         with utility_col:
             with st.popover("Workspace", use_container_width=True):
@@ -109,7 +129,13 @@ def top_shell(
                 st.divider()
                 status = "Private cloud" if mode == "private" else "Demo workspace"
                 st.caption(status.upper())
-                auth_ui.login_panel()
+                if mode == "private":
+                    name, email = auth_ui.account_identity()
+                    st.write(f"**{name}**")
+                    if email:
+                        st.caption(email)
+                else:
+                    st.caption("Use the Account control in the top bar to sign in.")
 
     st.html(
         f'<div class="f-context-strip"><span>{page}</span><span>{report_date:%d %b %Y}</span>'
