@@ -54,7 +54,7 @@ def overview_page():
     month = _month()
     store = _store()
     o = an.overview(store, month)
-    period = pd.Period(month()).strftime("%B %Y")
+    period = pd.Period(month).strftime("%B %Y")
 
     hero(
         "Your money, without the noise.",
@@ -64,12 +64,13 @@ def overview_page():
 
     balance_col, pulse_col = st.columns([1.6, .72], gap="large", vertical_alignment="bottom")
     with balance_col:
-        st.metric(
-            "Available cash",
-            rupees(o["balance"]),
-            help="Current non-investment, non-card account balances through the selected report date.",
-        )
-        st.caption("Liquid position across the accounts currently in this data view.")
+        with st.container(key="fyntra-overview-balance"):
+            st.metric(
+                "Available cash",
+                rupees(o["balance"]),
+                help="Current non-investment, non-card account balances through the selected report date.",
+            )
+            st.caption("Liquid position across the accounts currently in this data view.")
     with pulse_col:
         insight_panel(o["pulse"], o["pulse_detail"])
 
