@@ -470,7 +470,7 @@ def overview_page():
 
     chart_col, budget_col = st.columns([1.65, 1], gap="medium")
     with chart_col:
-        with st.container(border=True, key="dk-cashflow-card", height="stretch"):
+        with st.container(border=True, key="dk-cashflow-card"):
             section_header("Money in motion", "Income and expenses · recent months")
             _cash_flow_chart(summary)
             _cash_flow_footer(summary)
