@@ -27,7 +27,7 @@ def _page_header(title, copy, kicker):
 
 
 def _cash_flow_chart(summary):
-    """Grouped monthly bars with clear separation between income and expenses."""
+    """Compact grouped monthly bars with reference-style spacing and headroom."""
     if summary.empty:
         st.caption("Your cash-flow chart appears when you add transactions.")
         return
@@ -35,16 +35,16 @@ def _cash_flow_chart(summary):
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     plot["Flow"] = plot["Flow"].map({"income": "Income", "expenses": "Expenses"})
     max_amount = float(plot["Amount"].max()) if not plot.empty else 0.0
-    y_max = max_amount * 1.18 if max_amount else 1.0
+    y_max = max_amount * 1.16 if max_amount else 1.0
 
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=34)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=32)
         .encode(
             x=alt.X(
                 "month:N",
                 title=None,
-                scale=alt.Scale(paddingInner=0.16, paddingOuter=0.05),
+                scale=alt.Scale(paddingInner=0.24, paddingOuter=0.08),
                 axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=10),
             ),
             xOffset=alt.XOffset(
@@ -71,13 +71,61 @@ def _cash_flow_chart(summary):
                 alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f"),
             ],
         )
-        .properties(height=340)
+        .properties(height=225)
         .configure_view(stroke=None)
     )
     st.altair_chart(
         flow,
         width="stretch",
         alt="Recent income and expenses shown as grouped monthly bars",
+    )
+
+
+def _pct_change(current, previous):
+    current = float(current or 0)
+    previous = float(previous or 0)
+    if previous == 0:
+        return None
+    return ((current - previous) / abs(previous)) * 100
+
+
+def _cash_flow_footer(summary):
+    """Use the lower chart space for current-month totals and month-over-month movement."""
+    if summary.empty:
+        return
+
+    current = summary.iloc[-1]
+    previous = summary.iloc[-2] if len(summary) > 1 else None
+    current_income = float(current.get("income", 0) or 0)
+    current_expenses = float(current.get("expenses", 0) or 0)
+    current_net = current_income - current_expenses
+
+    previous_income = float(previous.get("income", 0) or 0) if previous is not None else 0.0
+    previous_expenses = float(previous.get("expenses", 0) or 0) if previous is not None else 0.0
+    previous_net = previous_income - previous_expenses
+
+    income_delta = _pct_change(current_income, previous_income) if previous is not None else None
+    expense_delta = _pct_change(current_expenses, previous_expenses) if previous is not None else None
+    net_delta = _pct_change(current_net, previous_net) if previous is not None else None
+
+    income_col, expense_col, net_col = st.columns(3, gap="small")
+    income_col.metric(
+        "Total income",
+        rupees(current_income),
+        None if income_delta is None else f"{income_delta:+.0f}%",
+        delta_color="normal",
+    )
+    expense_col.metric(
+        "Total expenses",
+        rupees(current_expenses),
+        None if expense_delta is None else f"{expense_delta:+.0f}%",
+        delta_color="inverse",
+    )
+    net_col.metric(
+        "Net cash flow this month",
+        rupees(current_net),
+        None if net_delta is None else f"{net_delta:+.0f}%",
+        delta_color="normal",
     )
 
 
@@ -425,7 +473,7 @@ def overview_page():
         with st.container(border=True, key="dk-cashflow-card", height="stretch"):
             section_header("Money in motion", "Income and expenses · recent months")
             _cash_flow_chart(summary)
-            st.caption(f'Net cash flow this month: {rupees(o["net"])}')
+            _cash_flow_footer(summary)
 
     with budget_col:
         with st.container(border=True, key="dk-budget-card", height="stretch"):
