@@ -35,21 +35,26 @@ def _cash_flow_chart(summary):
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     plot["Flow"] = plot["Flow"].map({"income": "Income", "expenses": "Expenses"})
     max_amount = float(plot["Amount"].max()) if not plot.empty else 0.0
-    y_ceiling = max_amount * 1.15 if max_amount else 1.0
+    y_max = max_amount * 1.16 if max_amount else 1.0
+
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=23)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=27)
         .encode(
             x=alt.X(
                 "month:N",
                 title=None,
+                scale=alt.Scale(paddingInner=0.24, paddingOuter=0.08),
                 axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=9),
             ),
-            xOffset=alt.XOffset("Flow:N"),
+            xOffset=alt.XOffset(
+                "Flow:N",
+                scale=alt.Scale(paddingInner=0.08, paddingOuter=0.02),
+            ),
             y=alt.Y(
                 "Amount:Q",
                 title=None,
-                scale=alt.Scale(domain=[0, y_ceiling], nice=False),
+                scale=alt.Scale(domain=[0, y_max], nice=False),
                 axis=alt.Axis(format="~s", domain=False, ticks=False, gridColor="#273532"),
             ),
             color=alt.Color(
