@@ -73,8 +73,8 @@ def _cash_flow_chart(summary):
     )
 
 
-def _budget_donut(spent, limit, height=166):
-    """Render budget utilization with a separate legend so nothing overlaps."""
+def _budget_donut(spent, limit, height=218):
+    """Render a larger budget donut with explicit used, remaining and over states."""
     limit = float(limit or 0)
     spent = max(0.0, float(spent or 0))
     if limit <= 0:
@@ -84,11 +84,11 @@ def _budget_donut(spent, limit, height=166):
     used = min(spent, limit)
     remaining = max(0.0, limit - spent)
     over = max(0.0, spent - limit)
-    records = [{"Part": "Used", "Amount": used}]
-    if remaining:
-        records.append({"Part": "Remaining", "Amount": remaining})
-    if over:
-        records.append({"Part": "Over", "Amount": over})
+    records = [
+        {"Part": "Used", "Amount": used},
+        {"Part": "Remaining", "Amount": remaining},
+        {"Part": "Over", "Amount": over},
+    ]
 
     frame = pd.DataFrame(records)
     palette = alt.Scale(
@@ -96,11 +96,11 @@ def _budget_donut(spent, limit, height=166):
         range=[POSITIVE, "#2A3B32", NEGATIVE],
     )
 
-    chart_col, legend_col = st.columns([0.92, 1.08], gap="small", vertical_alignment="center")
+    chart_col, legend_col = st.columns([1.08, 0.92], gap="medium", vertical_alignment="center")
     with chart_col:
         arc = (
             alt.Chart(frame)
-            .mark_arc(innerRadius=43, outerRadius=70, cornerRadius=4)
+            .mark_arc(innerRadius=56, outerRadius=92, cornerRadius=5)
             .encode(
                 theta=alt.Theta("Amount:Q", stack=True),
                 color=alt.Color("Part:N", scale=palette, legend=None),
@@ -113,7 +113,7 @@ def _budget_donut(spent, limit, height=166):
         label = pd.DataFrame({"Label": [f"{spent / limit:.0%}"]})
         center = (
             alt.Chart(label)
-            .mark_text(color="#F3F3E9", fontSize=20, fontWeight=600)
+            .mark_text(color="#F3F3E9", fontSize=24, fontWeight=700)
             .encode(text="Label:N")
         )
         donut = (
@@ -125,15 +125,36 @@ def _budget_donut(spent, limit, height=166):
         st.altair_chart(
             donut,
             width="stretch",
-            alt="Budget used and remaining",
+            alt="Budget used, remaining and over-budget amount",
         )
     with legend_col:
-        st.markdown(f"**Used**  \n{rupees(used)} · {used / limit:.0%}")
-        st.caption("Remaining")
-        st.write(f"**{rupees(remaining)}** · {remaining / limit:.0%}")
-        if over:
-            st.caption("Over")
-            st.write(f"**{rupees(over)}**")
+        st.html(
+            f'''
+            <div style="display:grid;gap:14px;padding:4px 0">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+                  <span style="width:10px;height:10px;border-radius:999px;background:{POSITIVE};display:inline-block"></span>
+                  Used
+                </div>
+                <div style="margin-left:18px;margin-top:3px;font-weight:700">{rupees(used)} · {used / limit:.0%}</div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;color:#9DA7A1;font-weight:700">
+                  <span style="width:10px;height:10px;border-radius:999px;background:#2A3B32;display:inline-block"></span>
+                  Remaining
+                </div>
+                <div style="margin-left:18px;margin-top:3px;font-weight:700">{rupees(remaining)} · {remaining / limit:.0%}</div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;color:{NEGATIVE};font-weight:800">
+                  <span style="width:10px;height:10px;border-radius:999px;background:{NEGATIVE};display:inline-block"></span>
+                  Over budget
+                </div>
+                <div style="margin-left:18px;margin-top:3px;color:{NEGATIVE};font-weight:800">{rupees(over)} · {over / limit:.0%}</div>
+              </div>
+            </div>
+            '''
+        )
 
 
 def _expense_history(store):
