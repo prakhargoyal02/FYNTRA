@@ -9,6 +9,7 @@ import analytics as analytics_module
 from database import Store, today as actual_today
 from demo_data import seed_demo
 from ui import brand, sidebar_status, style
+from taste_theme import apply_taste_layer
 import auth_ui
 import statement_tools
 import statement_formats
@@ -69,6 +70,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 style()
+apply_taste_layer()
 st.session_state.setdefault("mode", "demo")
 if "store" not in st.session_state:
     directory = tempfile.TemporaryDirectory(prefix="fyntra-demo-")
