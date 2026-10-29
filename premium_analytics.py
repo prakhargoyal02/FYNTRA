@@ -1,4 +1,4 @@
-"""DashboardKit-style analytics workspace over FYNTRA's existing analytics layer."""
+"""Financial analytics workspace over FYNTRA's existing analytics layer."""
 import altair as alt
 import pandas as pd
 import streamlit as st
