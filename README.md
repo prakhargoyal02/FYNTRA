@@ -16,7 +16,7 @@
   <a href="https://fyntra-prakhargoyal-0003.streamlit.app"><img src="https://img.shields.io/badge/live-FYNTRA-B5F3CF?logo=streamlit&logoColor=0B1010" alt="Live FYNTRA"></a>
   <a href="https://github.com/prakhargoyal02/FYNTRA/actions"><img src="https://img.shields.io/github/actions/workflow/status/prakhargoyal02/FYNTRA/tests.yml?branch=main&label=tests" alt="Tests"></a>
   <img src="https://img.shields.io/badge/python-3.12%20%7C%203.13-3776AB?logo=python&logoColor=white" alt="Python 3.12 and 3.13">
-  <img src="https://img.shields.io/badge/license-personal%20project-385B49" alt="Personal project">
+  <img src="https://img.shields.io/badge/SQLite-ledger-003B57?logo=sqlite&logoColor=white" alt="SQLite ledger">
 </p>
 
 <p align="center">
