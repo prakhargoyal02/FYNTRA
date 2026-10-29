@@ -12,9 +12,9 @@
 
 FYNTRA is a personal finance workspace built by **Prakhar Goyal** with Python, NumPy, Pandas, SQLite and Streamlit. It brings accounts, transactions, budgets, commitments, goals, debt and financial insights into one workspace.
 
-[![Open live app](https://img.shields.io/badge/OPEN%20FYNTRA-Live%20demo-22B88A?logo=streamlit&logoColor=white)](https://fyntra-prakhargoyal.streamlit.app)
+[![Open live app](https://img.shields.io/badge/OPEN%20FYNTRA-Live%20demo-22B88A?logo=streamlit&logoColor=white)](https://fyntra-prakhargoyal-0003.streamlit.app)
 
-**[Launch the fictional demo](https://fyntra-prakhargoyal.streamlit.app)** · [Explore the source](https://github.com/prakhargoyal02/FYNTRA)
+**[Launch the fictional demo](https://fyntra-prakhargoyal-0003.streamlit.app)** · [Explore the source](https://github.com/prakhargoyal02/FYNTRA)
 
 ## Features
 

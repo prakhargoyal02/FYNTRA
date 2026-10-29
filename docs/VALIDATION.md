@@ -22,6 +22,6 @@ The FYNTRA cloud table uses Row Level Security. Ownership policies constrain rea
 
 ## Deployment
 
-The public FYNTRA demo is available at https://fyntra-prakhargoyal.streamlit.app. The deployed demo uses fictional data and does not require private cloud credentials.
+The public FYNTRA demo is available at https://fyntra-prakhargoyal-0003.streamlit.app. The deployed demo uses fictional data and does not require private cloud credentials.
 
 Automated checks cover the financial and data-processing rules. Browser-level deployment checks should be repeated after dependency, authentication, deployment-coordinate or major interface changes.
