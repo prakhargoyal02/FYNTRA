@@ -35,21 +35,21 @@ def _cash_flow_chart(summary):
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     plot["Flow"] = plot["Flow"].map({"income": "Income", "expenses": "Expenses"})
     max_amount = float(plot["Amount"].max()) if not plot.empty else 0.0
-    y_max = max_amount * 1.16 if max_amount else 1.0
+    y_max = max_amount * 1.18 if max_amount else 1.0
 
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=27)
+        .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, size=34)
         .encode(
             x=alt.X(
                 "month:N",
                 title=None,
-                scale=alt.Scale(paddingInner=0.24, paddingOuter=0.08),
-                axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=9),
+                scale=alt.Scale(paddingInner=0.16, paddingOuter=0.05),
+                axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=10),
             ),
             xOffset=alt.XOffset(
                 "Flow:N",
-                scale=alt.Scale(paddingInner=0.08, paddingOuter=0.02),
+                scale=alt.Scale(paddingInner=0.02, paddingOuter=0.0),
             ),
             y=alt.Y(
                 "Amount:Q",
@@ -71,7 +71,7 @@ def _cash_flow_chart(summary):
                 alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f"),
             ],
         )
-        .properties(height=265)
+        .properties(height=340)
         .configure_view(stroke=None)
     )
     st.altair_chart(
@@ -422,13 +422,13 @@ def overview_page():
 
     chart_col, budget_col = st.columns([1.65, 1], gap="medium")
     with chart_col:
-        with st.container(border=True, key="dk-cashflow-card"):
+        with st.container(border=True, key="dk-cashflow-card", height="stretch"):
             section_header("Money in motion", "Income and expenses · recent months")
             _cash_flow_chart(summary)
             st.caption(f'Net cash flow this month: {rupees(o["net"])}')
 
     with budget_col:
-        with st.container(border=True, key="dk-budget-card"):
+        with st.container(border=True, key="dk-budget-card", height="stretch"):
             section_header("Room to spend", "Your monthly budget")
             st.metric(
                 "Budget left",
