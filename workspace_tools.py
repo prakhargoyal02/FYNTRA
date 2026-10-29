@@ -1,4 +1,4 @@
-"""Small personal utilities that live in FYNTRA's top product shell."""
+"""Small personal utilities that live in FYNTRA's product shell."""
 from __future__ import annotations
 
 import ast
@@ -242,7 +242,7 @@ def _notepad_panel():
 
 
 def tools_panel():
-    """Render calculator and sticky notes inside the compact top-bar popover."""
+    """Render calculator and sticky notes in a compact panel."""
     tool = st.radio(
         "Utility",
         ["Calculator", "Notepad"],
@@ -254,3 +254,53 @@ def tools_panel():
         _notepad_panel()
     else:
         _calculator_panel()
+
+
+def _pick_quick_tool(name):
+    st.session_state.fyntra_quick_tool = name
+
+
+def _toggle_dock():
+    current = st.session_state.get("fyntra_tools_dock", "right")
+    st.session_state.fyntra_tools_dock = "left" if current == "right" else "right"
+
+
+def floating_tools():
+    """Always-visible, dockable utility launcher outside the navigation menu."""
+    side = st.session_state.setdefault("fyntra_tools_dock", "right")
+    tool = st.session_state.setdefault("fyntra_quick_tool", "Calculator")
+    with st.container(key=f"floating-tools-{side}"):
+        with st.popover("Tools", icon=":material/apps:"):
+            st.caption("QUICK TOOLS")
+            calc_col, note_col = st.columns(2, gap="small")
+            calc_col.button(
+                "Calculator",
+                icon=":material/calculate:",
+                key="quick-tool-calculator",
+                type="primary" if tool == "Calculator" else "secondary",
+                use_container_width=True,
+                on_click=_pick_quick_tool,
+                args=("Calculator",),
+            )
+            note_col.button(
+                "Notes",
+                icon=":material/sticky_note_2:",
+                key="quick-tool-notes",
+                type="primary" if tool == "Notepad" else "secondary",
+                use_container_width=True,
+                on_click=_pick_quick_tool,
+                args=("Notepad",),
+            )
+            st.divider()
+            if st.session_state.get("fyntra_quick_tool", "Calculator") == "Notepad":
+                _notepad_panel()
+            else:
+                _calculator_panel()
+            st.divider()
+            st.button(
+                "Dock left" if side == "right" else "Dock right",
+                icon=":material/swap_horiz:",
+                key="quick-tool-dock",
+                use_container_width=True,
+                on_click=_toggle_dock,
+            )
