@@ -63,8 +63,7 @@ The screenshots and demo figures are fictional. Validation notes are available i
 
 ## Run locally
 
-For the Windows launcher, VS Code debugger and diagnostic tools, start with [START_HERE.md](START_HERE.md). The [Clarity redesign notes](docs/REDESIGN.md) explain the visual system and testing.
-
+For the Windows launcher, VS Code debugger and diagnostic tools, start with [START_HERE.md](START_HERE.md).
 
 Use Python 3.12 or 3.13.
 
