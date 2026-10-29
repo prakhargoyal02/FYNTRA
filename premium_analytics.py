@@ -3,7 +3,7 @@ import streamlit as st
 
 import analytics as an
 import views
-from ui import ACCENT, NEGATIVE, POSITIVE, WARNING, chart, hero, insight_panel, metrics, rupees, section_header
+from modern_ui import ACCENT, NEGATIVE, POSITIVE, WARNING, chart, hero, insight_panel, metrics, rupees, section_header
 
 
 def analytics_page():
@@ -14,64 +14,70 @@ def analytics_page():
     daily = an.daily_spending(store, month)
 
     hero(
-        "See the pattern. Shape what comes next.",
-        "Financial intelligence from the ledger you already own, with every number traceable back to recorded data.",
+        "Patterns are easier to act on when they breathe.",
+        "Financial intelligence from the ledger you already own, arranged around movement, pressure and change.",
         f"CASH FLOW & INSIGHTS / {month}",
     )
 
-    metrics([
-        ("Net cash flow", rupees(review["net"]), "Income minus expenses in the selected month."),
-        ("Income", rupees(review["income"]), "Recorded income in the selected month."),
-        ("Expenses", rupees(review["expenses"]), "Recorded expenses; transfers excluded."),
-        ("Daily average", rupees(review["average_daily_spend"]), "Average spend including zero-spend days through the report date."),
-    ])
+    lead_col, review_col = st.columns([1.4, .8], gap="medium")
+    with lead_col:
+        with st.container(border=True, key="bento-balance"):
+            st.caption("MONTHLY CASH FLOW")
+            st.metric("Net cash flow", rupees(review["net"]), help="Income minus expenses in the selected month.")
+            left, right = st.columns(2)
+            left.metric("Income", rupees(review["income"]), help="Recorded income in the selected month.")
+            right.metric("Expenses", rupees(review["expenses"]), help="Recorded expenses; transfers excluded.")
+    with review_col:
+        with st.container(border=True, key="bento-pulse"):
+            section_header("Fast read", "The facts that explain this month fastest.")
+            st.metric("Largest expense", rupees(review["largest_amount"]), help=review["largest_expense"] or "No expenses")
+            st.metric("Top category", review["top_category"] or "—")
+            st.metric("Daily average", rupees(review["average_daily_spend"]))
 
-    section_header("Cash flow over time", "The long view first. Net movement shows whether each month created or consumed cash.")
-    chart(summary, "month:N", "net:Q", "area", color=ACCENT, height=350, title="Monthly net cash flow")
+    with st.container(border=True, key="bento-motion"):
+        section_header("Cash flow over time", "Net movement shows whether each month created or consumed cash.")
+        chart(summary, "month:N", "net:Q", "area", color=ACCENT, height=350, title="Monthly net cash flow")
 
-    left, right = st.columns([1.18, .82], gap="large")
+    left, right = st.columns([1.15, .85], gap="medium")
     with left:
-        section_header("Where money went", "Selected-month spending by category.")
-        chart(an.category_summary(store, month), "category:N", "amount:Q", "bar", color=NEGATIVE, height=300, title="Category spending")
+        with st.container(border=True, key="bento-spending"):
+            section_header("Where money went", "Selected-month spending by category.")
+            chart(an.category_summary(store, month), "category:N", "amount:Q", "bar", color=NEGATIVE, height=300, title="Category spending")
 
-        section_header("Daily spending rhythm", "Daily values first, then the seven-day trailing average.")
-        chart(daily, "date:T", "amount:Q", "bar", color=WARNING, height=235, title="Daily spending")
-        chart(daily, "date:T", "rolling_7d:Q", "line", color=ACCENT, height=150, title="Seven-day trailing average spending")
+        with st.container(border=True, key="bento-activity"):
+            section_header("Daily spending rhythm", "Daily values first, then the seven-day trailing average.")
+            chart(daily, "date:T", "amount:Q", "bar", color=WARNING, height=230, title="Daily spending")
+            chart(daily, "date:T", "rolling_7d:Q", "line", color=ACCENT, height=145, title="Seven-day trailing average spending")
 
     with right:
-        section_header("Monthly spending", "Expense pressure across the full recorded history.")
-        chart(summary, "month:N", "expenses:Q", "area", color=NEGATIVE, height=245, title="Monthly expenses")
-
-        section_header("Recorded net worth", "Snapshots are observations, so later edits do not rewrite old snapshots.")
-        chart(an.net_worth_history(store), "date:T", "net_worth:Q", "line", color=POSITIVE, height=245, title="Recorded net worth")
-
-        section_header("Account distribution", "Current balances in this data view.")
-        chart(an.account_summary(store), "name:N", "balance:Q", "bar", color=ACCENT, height=230, title="Account balances")
+        with st.container(border=True, key="bento-position"):
+            section_header("Longer position", "Monthly pressure, recorded wealth and account distribution.")
+            chart(summary, "month:N", "expenses:Q", "area", color=NEGATIVE, height=220, title="Monthly expenses")
+            chart(an.net_worth_history(store), "date:T", "net_worth:Q", "line", color=POSITIVE, height=220, title="Recorded net worth")
+            chart(an.account_summary(store), "name:N", "balance:Q", "bar", color=ACCENT, height=215, title="Account balances")
 
     if month == views.today().strftime("%Y-%m"):
-        section_header("If this pace continues", "Simple arithmetic using recorded spending pace, not a prediction.")
-        metrics([
-            ("Month-end spending", rupees(review["projected_month_expense"]), "Expenses so far plus average daily spend times remaining days."),
-            ("Month-end cash", rupees(review["projected_end_balance"]), "Current cash minus projected remaining spending, assuming no new income."),
-        ])
-        st.caption("Upcoming bills are not added again because the average already represents spending. Timing and one-off purchases can change the result.")
+        with st.container(border=True, key="bento-budget"):
+            section_header("If this pace continues", "Simple arithmetic using recorded spending pace, not a prediction.")
+            metrics([
+                ("Month-end spending", rupees(review["projected_month_expense"]), "Expenses so far plus average daily spend times remaining days."),
+                ("Month-end cash", rupees(review["projected_end_balance"]), "Current cash minus projected remaining spending, assuming no new income."),
+            ])
+            st.caption("Upcoming bills are not added again because the average already represents spending. Timing and one-off purchases can change the result.")
 
-    section_header("Monthly review", "A concise set of facts to explain what actually changed.")
-    metrics([
-        ("Largest expense", rupees(review["largest_amount"]), review["largest_expense"] or "No expenses"),
-        ("Top category", review["top_category"] or "—", "Highest recorded category total."),
-        ("Budgets exceeded", str(review["budgets_exceeded"]), "Categories over 100%."),
-        ("Debt principal reduced", rupees(review["debt_reduced"]), "Recorded principal payments this month."),
-        ("Net-worth change", rupees(review["net_worth_change"]), "Requires a snapshot before and within this month."),
-    ])
-    st.caption(
-        f'Bills paid: {review["bills_paid"]} · Subscription renewals recorded: {review["subscriptions_paid"]}'
-    )
+    with st.container(border=True, key="bento-horizon"):
+        section_header("Monthly review", "A concise set of facts to explain what actually changed.")
+        metrics([
+            ("Budgets exceeded", str(review["budgets_exceeded"]), "Categories over 100%."),
+            ("Debt principal reduced", rupees(review["debt_reduced"]), "Recorded principal payments this month."),
+            ("Net-worth change", rupees(review["net_worth_change"]), "Requires a snapshot before and within this month."),
+        ])
+        st.caption(f'Bills paid: {review["bills_paid"]} · Subscription renewals recorded: {review["subscriptions_paid"]}')
 
     insights = review.get("insights") or []
     if insights:
         section_header("What changed this month?", "Generated from recorded comparisons, not hidden recommendation logic.")
-        insight_columns = st.columns(2, gap="large")
+        insight_columns = st.columns(2, gap="medium")
         for index, text in enumerate(insights):
             with insight_columns[index % 2]:
                 insight_panel(f"Insight {index + 1:02d}", text)
