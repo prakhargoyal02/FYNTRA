@@ -34,9 +34,11 @@ def _cash_flow_chart(summary):
 
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
     plot["Flow"] = plot["Flow"].map({"income": "Income", "expenses": "Expenses"})
+    max_amount = float(plot["Amount"].max()) if not plot.empty else 0.0
+    y_ceiling = max_amount * 1.15 if max_amount else 1.0
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=18)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=23)
         .encode(
             x=alt.X(
                 "month:N",
@@ -47,6 +49,7 @@ def _cash_flow_chart(summary):
             y=alt.Y(
                 "Amount:Q",
                 title=None,
+                scale=alt.Scale(domain=[0, y_ceiling], nice=False),
                 axis=alt.Axis(format="~s", domain=False, ticks=False, gridColor="#273532"),
             ),
             color=alt.Color(
@@ -63,7 +66,7 @@ def _cash_flow_chart(summary):
                 alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f"),
             ],
         )
-        .properties(height=245)
+        .properties(height=265)
         .configure_view(stroke=None)
     )
     st.altair_chart(
