@@ -27,19 +27,21 @@ def _page_header(title, copy, kicker):
 
 
 def _cash_flow_chart(summary):
-    """Compact grouped bars with breathing room for income versus spending."""
+    """Grouped monthly bars with clear separation between income and expenses."""
     if summary.empty:
         st.caption("Your cash-flow chart appears when you add transactions.")
         return
+
     plot = summary.melt("month", ["income", "expenses"], var_name="Flow", value_name="Amount")
+    plot["Flow"] = plot["Flow"].map({"income": "Income", "expenses": "Expenses"})
     flow = (
         alt.Chart(plot)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=20)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, size=18)
         .encode(
             x=alt.X(
                 "month:N",
                 title=None,
-                axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=8),
+                axis=alt.Axis(labelAngle=0, domain=False, ticks=False, labelPadding=9),
             ),
             xOffset=alt.XOffset("Flow:N"),
             y=alt.Y(
@@ -50,25 +52,25 @@ def _cash_flow_chart(summary):
             color=alt.Color(
                 "Flow:N",
                 scale=alt.Scale(
-                    domain=["income", "expenses"],
-                    range=[POSITIVE, "#627E73"],
+                    domain=["Income", "Expenses"],
+                    range=[POSITIVE, "#E7C887"],
                 ),
-                legend=alt.Legend(
-                    orient="bottom",
-                    title=None,
-                    labelExpr="datum.label == 'income' ? 'Income' : 'Spending'",
-                ),
+                legend=alt.Legend(orient="bottom", title=None),
             ),
             tooltip=[
                 alt.Tooltip("month:N", title="Month"),
-                alt.Tooltip("Flow:N"),
+                alt.Tooltip("Flow:N", title="Flow"),
                 alt.Tooltip("Amount:Q", title="Amount (₹)", format=",.0f"),
             ],
         )
-        .properties(height=205)
+        .properties(height=245)
         .configure_view(stroke=None)
     )
-    st.altair_chart(flow, width="stretch", alt="Recent income and spending shown as grouped monthly bars")
+    st.altair_chart(
+        flow,
+        width="stretch",
+        alt="Recent income and expenses shown as grouped monthly bars",
+    )
 
 
 def _budget_donut(spent, limit, height=166):
@@ -114,8 +116,14 @@ def _budget_donut(spent, limit, height=166):
             .mark_text(color="#F3F3E9", fontSize=20, fontWeight=600)
             .encode(text="Label:N")
         )
+        donut = (
+            (arc + center)
+            .properties(height=height)
+            .configure(background="transparent")
+            .configure_view(stroke=None, fill="transparent")
+        )
         st.altair_chart(
-            (arc + center).properties(height=height).configure_view(stroke=None),
+            donut,
             width="stretch",
             alt="Budget used and remaining",
         )
@@ -174,7 +182,7 @@ def _spending_comparison(store):
     history = _expense_history(store)
     title_col, menu_col = st.columns([0.86, 0.14], vertical_alignment="top")
     with title_col:
-        section_header("Compare spending", "Choose months, weeks or days and compare recorded expenses.")
+        section_header("Compare spending", "")
     with menu_col:
         with st.popover("⋯"):
             mode = st.radio(
@@ -196,6 +204,7 @@ def _spending_comparison(store):
                 key=selection_key,
                 help="Compare up to three recorded periods. No calendar selection is needed.",
             )
+    st.caption("Choose months, weeks or days and compare recorded expenses.")
 
     if history.empty or not options:
         st.caption("Add expenses across more than one period to compare spending.")
@@ -230,7 +239,7 @@ def _spending_comparison(store):
                     alt.Tooltip("amount:Q", title="Spending (₹)", format=",.0f"),
                 ],
             )
-            .properties(height=145)
+            .properties(height=170)
         )
     else:
         grouped = picked.groupby(["_period_label", "_step", "_step_label"], as_index=False).amount.sum()
@@ -268,7 +277,7 @@ def _spending_comparison(store):
                     alt.Tooltip("amount:Q", title="Spending (₹)", format=",.0f"),
                 ],
             )
-            .properties(height=155)
+            .properties(height=180)
         )
 
     st.altair_chart(
@@ -385,7 +394,7 @@ def overview_page():
     chart_col, budget_col = st.columns([1.65, 1], gap="medium")
     with chart_col:
         with st.container(border=True, key="dk-cashflow-card"):
-            section_header("Money in motion", "Income and spending · recent months")
+            section_header("Money in motion", "Income and expenses · recent months")
             _cash_flow_chart(summary)
             st.caption(f'Net cash flow this month: {rupees(o["net"])}')
 
@@ -447,7 +456,7 @@ def overview_page():
                             ),
                         ],
                     )
-                    .properties(height=185)
+                    .properties(height=205)
                     .configure_view(stroke=None)
                 )
                 st.altair_chart(
@@ -455,7 +464,7 @@ def overview_page():
                     width="stretch",
                     alt="Recorded spending by category in the selected month",
                 )
-            st.divider()
+            st.html('<div style="height:18px" aria-hidden="true"></div>')
             _spending_comparison(store)
 
     with activity_col:
